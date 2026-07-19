@@ -1,0 +1,1 @@
+import {db} from "@/lib/db";export default async function Settings(){const value=await db.companySettings.findUnique({where:{id:"default"}});return <><h1>Configurações</h1><div className="card"><h2>{value?.name}</h2><p className="muted">Timezone: {value?.timezone}</p><p>Dados editáveis e templates serão ampliados na fase 2.</p></div></>}

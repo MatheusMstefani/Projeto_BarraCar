@@ -1,0 +1,284 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum PersonType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum ServiceCategory {
+  INTERNAL
+  EXTERNAL
+  OTHER
+}
+
+enum WorkOrderStatus {
+  DRAFT
+  WAITING
+  SCHEDULED
+  IN_PROGRESS
+  PAUSED
+  FINISHED
+  AWAITING_PICKUP
+  DELIVERED
+  CANCELED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  CANCELED
+}
+
+enum PaymentMethod {
+  CASH
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  BOLETO
+  OTHER
+}
+
+enum AppointmentStatus {
+  PENDING_APPROVAL
+  CONFIRMED
+  IN_SERVICE
+  COMPLETED
+  CANCELED
+  NO_SHOW
+}
+
+enum AppointmentOrigin {
+  INTERNAL
+  WORK_ORDER
+  PUBLIC_REQUEST
+  QUOTE
+}
+
+enum EntryType {
+  INCOME
+  EXPENSE
+}
+
+enum FinancialStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  username     String     @unique
+  passwordHash String
+  role         Role       @default(EMPLOYEE)
+  active       Boolean    @default(true)
+  employee     Employee?
+  auditLogs    AuditLog[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Employee {
+  id           String          @id @default(cuid())
+  name         String
+  phone        String
+  position     String
+  hiredAt      DateTime
+  active       Boolean         @default(true)
+  userId       String?         @unique
+  user         User?           @relation(fields: [userId], references: [id])
+  items        WorkOrderItem[]
+  appointments Appointment[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([name])
+}
+
+model Customer {
+  id           String        @id @default(cuid())
+  type         PersonType    @default(INDIVIDUAL)
+  name         String
+  taxId        String?
+  phone        String
+  whatsapp     String
+  email        String?
+  city         String
+  address      String?
+  notes        String?
+  active       Boolean       @default(true)
+  vehicles     Vehicle[]
+  workOrders   WorkOrder[]
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([name])
+  @@index([phone])
+  @@index([taxId])
+}
+
+model Vehicle {
+  id           String        @id @default(cuid())
+  customerId   String
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  brand        String
+  model        String
+  year         Int?
+  color        String
+  plate        String        @unique
+  mileage      Int?
+  chassis      String?
+  notes        String?
+  active       Boolean       @default(true)
+  workOrders   WorkOrder[]
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([customerId])
+}
+
+model Service {
+  id                      String          @id @default(cuid())
+  name                    String
+  category                ServiceCategory
+  defaultPrice            Decimal         @db.Decimal(12, 2)
+  durationMinutes         Int
+  maintenanceIntervalDays Int?
+  createsReminder         Boolean         @default(false)
+  active                  Boolean         @default(true)
+  items                   WorkOrderItem[]
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  @@unique([name, category])
+}
+
+model WorkOrder {
+  id                 String          @id @default(cuid())
+  number             Int             @unique @default(autoincrement())
+  customerId         String
+  customer           Customer        @relation(fields: [customerId], references: [id])
+  vehicleId          String
+  vehicle            Vehicle         @relation(fields: [vehicleId], references: [id])
+  entryAt            DateTime        @default(now())
+  scheduledAt        DateTime?
+  expectedDeliveryAt DateTime?
+  deliveredAt        DateTime?
+  mileage            Int?
+  fuelLevel          Int?
+  discount           Decimal         @default(0) @db.Decimal(12, 2)
+  total              Decimal         @db.Decimal(12, 2)
+  paymentMethod      PaymentMethod?
+  paymentStatus      PaymentStatus   @default(PENDING)
+  status             WorkOrderStatus @default(DRAFT)
+  notes              String?
+  items              WorkOrderItem[]
+  appointment        Appointment?
+  financialEntry     FinancialEntry?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([status, scheduledAt])
+}
+
+model WorkOrderItem {
+  id          String    @id @default(cuid())
+  workOrderId String
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service   @relation(fields: [serviceId], references: [id])
+  employeeId  String?
+  employee    Employee? @relation(fields: [employeeId], references: [id])
+  quantity    Int       @default(1)
+  unitPrice   Decimal   @db.Decimal(12, 2)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  notes       String?
+
+  @@index([workOrderId])
+}
+
+model Appointment {
+  id          String            @id @default(cuid())
+  workOrderId String?           @unique
+  workOrder   WorkOrder?        @relation(fields: [workOrderId], references: [id])
+  customerId  String
+  customer    Customer          @relation(fields: [customerId], references: [id])
+  vehicleId   String
+  vehicle     Vehicle           @relation(fields: [vehicleId], references: [id])
+  employeeId  String?
+  employee    Employee?         @relation(fields: [employeeId], references: [id])
+  startsAt    DateTime
+  endsAt      DateTime
+  origin      AppointmentOrigin
+  status      AppointmentStatus
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([startsAt, status])
+}
+
+model FinancialEntry {
+  id             String          @id @default(cuid())
+  workOrderId    String?         @unique
+  workOrder      WorkOrder?      @relation(fields: [workOrderId], references: [id])
+  description    String
+  type           EntryType
+  category       String
+  amount         Decimal         @db.Decimal(12, 2)
+  competenceDate DateTime
+  dueDate        DateTime?
+  paidAt         DateTime?
+  paymentMethod  PaymentMethod?
+  status         FinancialStatus
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([competenceDate, type, status])
+}
+
+model CompanySettings {
+  id        String   @id @default("default")
+  name      String   @default("Barracar Estética Automotiva")
+  taxId     String?
+  phone     String?
+  email     String?
+  instagram String?
+  address   String?
+  timezone  String   @default("America/Sao_Paulo")
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  entity    String
+  entityId  String
+  action    String
+  changes   Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}

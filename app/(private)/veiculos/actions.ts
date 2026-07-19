@@ -1,0 +1,3 @@
+"use server"; import { auth } from "@/auth"; import {db} from "@/lib/db"; import {normalizePlate} from "@/lib/domain"; import {revalidatePath} from "next/cache"; import {z} from "zod";
+const schema=z.object({customerId:z.string().min(1),brand:z.string().min(1),model:z.string().min(1),color:z.string().min(1),plate:z.string().min(7)});
+export async function createVehicle(data:FormData){if((await auth())?.user.role!=="ADMIN")throw new Error("Sem permissão");const value=schema.parse(Object.fromEntries(data));await db.vehicle.create({data:{...value,plate:normalizePlate(value.plate)}});revalidatePath("/veiculos")}

@@ -1,0 +1,2 @@
+-- Initial schema is generated from prisma/schema.prisma.
+-- Run `npm run db:migrate` to apply it in development.
