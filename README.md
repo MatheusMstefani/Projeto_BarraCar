@@ -48,4 +48,29 @@ npm run build
 
 ## Estado de validação
 
-Neste ambiente, `npm` não está disponível no `PATH`. A pasta de migration contém somente um marcador: execute o comando de migration acima e versione o SQL gerado. Dependências, migration, seed, lint, typecheck, testes e build precisam ser executados com Node.js antes de considerar a etapa pronta para produção.
+Node.js, dependências e Docker estão disponíveis. As migrations inicial e da Fase 2 foram aplicadas sem reset; seed, typecheck, lint, testes e build foram executados com sucesso em 19/07/2026.
+
+## Fase 2 — checklist, fotos, assinaturas e PDF
+
+Execute `docker compose up -d` para iniciar PostgreSQL, MinIO e criar automaticamente o bucket privado. A variável `MAX_IMAGE_SIZE_MB` controla o limite de imagem (10 MB por padrão).
+
+Para testar:
+
+1. Entre como administrador e crie ou abra uma OS.
+2. Clique no número da OS e use as abas Checklist, Vistoria e fotos, Assinaturas e Documento PDF.
+3. No Checklist, salve itens individualmente e confirme o contador de progresso.
+4. Em Vistoria, escolha câmera/galeria, confira a prévia e envie JPG, PNG ou WEBP.
+5. Em Assinaturas, desenhe com mouse ou toque, informe o assinante e confirme.
+6. Em Documento PDF, gere, visualize, baixe e gere uma nova versão.
+7. Em Histórico, confirme os eventos auditados.
+
+O MinIO está em `http://localhost:9001` com as credenciais locais do `.env.example`. O bucket `barracar-private` deve aparecer sem acesso anônimo. Para testar pelo celular, use o IP local do computador e permita acesso à câmera no navegador.
+
+```bash
+npx prisma migrate deploy
+npm run db:seed
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```

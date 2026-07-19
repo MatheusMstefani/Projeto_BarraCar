@@ -1,0 +1,5 @@
+"use server";
+import { auth } from "@/auth";import { db } from "@/lib/db";import { revalidatePath } from "next/cache";import { z } from "zod";
+async function admin(){const session=await auth();if(session?.user.role!=="ADMIN")throw new Error("Apenas administradores podem alterar o checklist.")}
+export async function createChecklistItem(data:FormData){await admin();const value=z.object({templateId:z.string().min(1),title:z.string().min(2),category:z.string().min(2),displayOrder:z.coerce.number().int().nonnegative()}).parse(Object.fromEntries(data));await db.checklistTemplateItem.create({data:value});revalidatePath("/configuracoes")}
+export async function updateChecklistItem(data:FormData){await admin();const value=z.object({id:z.string(),title:z.string().min(2),category:z.string().min(2),displayOrder:z.coerce.number().int().nonnegative(),active:z.enum(["true","false"])}).parse(Object.fromEntries(data));await db.checklistTemplateItem.update({where:{id:value.id},data:{title:value.title,category:value.category,displayOrder:value.displayOrder,active:value.active==="true"}});revalidatePath("/configuracoes")}

@@ -13,6 +13,7 @@ export async function saveWorkOrder(input: WorkOrderInput, actorId?: string, id?
     const order = id
       ? await tx.workOrder.update({ where: { id }, data: { ...data, items: { deleteMany: {}, create: input.items } } })
       : await tx.workOrder.create({ data: { ...data, items: { create: input.items } } });
+    if (id) await tx.generatedDocument.updateMany({ where: { workOrderId: id, status: "CURRENT" }, data: { status: "OUTDATED" } });
     await syncAppointment(tx, order);
     await tx.auditLog.create({ data: { userId: actorId, entity: "WorkOrder", entityId: order.id, action: id ? "UPDATE" : "CREATE" } });
     return order;

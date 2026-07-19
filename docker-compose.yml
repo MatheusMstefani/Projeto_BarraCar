@@ -20,6 +20,11 @@ services:
       MINIO_ROOT_PASSWORD: troque-esta-chave-local
     ports: [ "9000:9000", "9001:9001" ]
     volumes: [ "minio_data:/data" ]
+  minio-init:
+    image: minio/mc:latest
+    depends_on: [ minio ]
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: [ "until mc alias set local http://minio:9000 barracar troque-esta-chave-local; do sleep 2; done; mc mb --ignore-existing local/barracar-private; mc anonymous set none local/barracar-private" ]
 volumes:
   postgres_data:
   minio_data:

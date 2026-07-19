@@ -79,18 +79,84 @@ enum FinancialStatus {
   CANCELED
 }
 
+enum ChecklistItemStatus {
+  NOT_CHECKED
+  NORMAL
+  DAMAGED
+  NOT_APPLICABLE
+}
+
+enum PhotoCategory {
+  GENERAL_ENTRY
+  DAMAGE
+  BEFORE_SERVICE
+  DURING_SERVICE
+  AFTER_SERVICE
+  DELIVERY
+  DOCUMENT
+  OTHER
+}
+
+enum VehicleRegion {
+  FRONT
+  REAR
+  LEFT_SIDE
+  RIGHT_SIDE
+  FRONT_BUMPER
+  REAR_BUMPER
+  HOOD
+  ROOF
+  FRONT_LEFT_DOOR
+  FRONT_RIGHT_DOOR
+  REAR_LEFT_DOOR
+  REAR_RIGHT_DOOR
+  FENDER
+  WHEEL
+  TIRE
+  WINDOW
+  MIRROR
+  HEADLIGHT
+  TAILLIGHT
+  INTERIOR
+  SEAT
+  DASHBOARD
+  TRUNK
+  ENGINE
+  OTHER
+}
+
+enum SignatureType {
+  CUSTOMER_ENTRY
+  PROFESSIONAL
+  DELIVERY_RESPONSIBLE
+  CUSTOMER_PICKUP
+}
+
+enum DocumentType {
+  WORK_ORDER_PDF
+}
+
+enum DocumentStatus {
+  CURRENT
+  OUTDATED
+}
+
 model User {
-  id           String     @id @default(cuid())
-  name         String
-  email        String     @unique
-  username     String     @unique
-  passwordHash String
-  role         Role       @default(EMPLOYEE)
-  active       Boolean    @default(true)
-  employee     Employee?
-  auditLogs    AuditLog[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id               String                   @id @default(cuid())
+  name             String
+  email            String                   @unique
+  username         String                   @unique
+  passwordHash     String
+  role             Role                     @default(EMPLOYEE)
+  active           Boolean                  @default(true)
+  employee         Employee?
+  auditLogs        AuditLog[]
+  checklistAnswers WorkOrderChecklistItem[]
+  photos           InspectionPhoto[]
+  signatures       Signature[]
+  documents        GeneratedDocument[]
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 }
 
 model Employee {
@@ -171,33 +237,147 @@ model Service {
 }
 
 model WorkOrder {
-  id                 String          @id @default(cuid())
-  number             Int             @unique @default(autoincrement())
+  id                 String                   @id @default(cuid())
+  number             Int                      @unique @default(autoincrement())
   customerId         String
-  customer           Customer        @relation(fields: [customerId], references: [id])
+  customer           Customer                 @relation(fields: [customerId], references: [id])
   vehicleId          String
-  vehicle            Vehicle         @relation(fields: [vehicleId], references: [id])
-  entryAt            DateTime        @default(now())
+  vehicle            Vehicle                  @relation(fields: [vehicleId], references: [id])
+  entryAt            DateTime                 @default(now())
   scheduledAt        DateTime?
   expectedDeliveryAt DateTime?
   deliveredAt        DateTime?
   mileage            Int?
   fuelLevel          Int?
-  discount           Decimal         @default(0) @db.Decimal(12, 2)
-  total              Decimal         @db.Decimal(12, 2)
+  discount           Decimal                  @default(0) @db.Decimal(12, 2)
+  total              Decimal                  @db.Decimal(12, 2)
   paymentMethod      PaymentMethod?
-  paymentStatus      PaymentStatus   @default(PENDING)
-  status             WorkOrderStatus @default(DRAFT)
+  paymentStatus      PaymentStatus            @default(PENDING)
+  status             WorkOrderStatus          @default(DRAFT)
   notes              String?
   items              WorkOrderItem[]
   appointment        Appointment?
   financialEntry     FinancialEntry?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  checklistItems     WorkOrderChecklistItem[]
+  photos             InspectionPhoto[]
+  signatures         Signature[]
+  documents          GeneratedDocument[]
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
 
   @@index([customerId])
   @@index([vehicleId])
   @@index([status, scheduledAt])
+}
+
+model ChecklistTemplate {
+  id        String                  @id @default(cuid())
+  name      String                  @unique
+  active    Boolean                 @default(true)
+  items     ChecklistTemplateItem[]
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+}
+
+model ChecklistTemplateItem {
+  id               String                   @id @default(cuid())
+  templateId       String
+  template         ChecklistTemplate        @relation(fields: [templateId], references: [id])
+  title            String
+  category         String
+  displayOrder     Int
+  active           Boolean                  @default(true)
+  allowsNotes      Boolean                  @default(true)
+  allowsPhoto      Boolean                  @default(true)
+  workOrderAnswers WorkOrderChecklistItem[]
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@unique([templateId, title])
+  @@index([templateId, active, displayOrder])
+}
+
+model WorkOrderChecklistItem {
+  id             String                @id @default(cuid())
+  workOrderId    String
+  workOrder      WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  templateItemId String
+  templateItem   ChecklistTemplateItem @relation(fields: [templateItemId], references: [id])
+  status         ChecklistItemStatus   @default(NOT_CHECKED)
+  notes          String?
+  completedAt    DateTime?
+  completedById  String?
+  completedBy    User?                 @relation(fields: [completedById], references: [id])
+  photos         InspectionPhoto[]
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([workOrderId, templateItemId])
+  @@index([workOrderId, status])
+  @@index([completedById])
+}
+
+model InspectionPhoto {
+  id              String                  @id @default(cuid())
+  workOrderId     String
+  workOrder       WorkOrder               @relation(fields: [workOrderId], references: [id])
+  checklistItemId String?
+  checklistItem   WorkOrderChecklistItem? @relation(fields: [checklistItemId], references: [id])
+  category        PhotoCategory
+  region          VehicleRegion
+  description     String?
+  objectKey       String                  @unique
+  size            Int
+  mimeType        String
+  originalName    String
+  uploadedById    String
+  uploadedBy      User                    @relation(fields: [uploadedById], references: [id])
+  deletedAt       DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([workOrderId, category, deletedAt])
+  @@index([checklistItemId])
+  @@index([uploadedById])
+}
+
+model Signature {
+  id            String        @id @default(cuid())
+  workOrderId   String
+  workOrder     WorkOrder     @relation(fields: [workOrderId], references: [id])
+  type          SignatureType
+  signerName    String
+  objectKey     String        @unique
+  mimeType      String
+  size          Int
+  notes         String?
+  collectedById String
+  collectedBy   User          @relation(fields: [collectedById], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([workOrderId, type])
+  @@index([collectedById])
+}
+
+model GeneratedDocument {
+  id            String         @id @default(cuid())
+  workOrderId   String
+  workOrder     WorkOrder      @relation(fields: [workOrderId], references: [id])
+  type          DocumentType   @default(WORK_ORDER_PDF)
+  version       Int
+  objectKey     String         @unique
+  mimeType      String         @default("application/pdf")
+  size          Int
+  sha256        String
+  status        DocumentStatus @default(CURRENT)
+  generatedById String
+  generatedBy   User           @relation(fields: [generatedById], references: [id])
+  createdAt     DateTime       @default(now())
+
+  @@unique([workOrderId, type, version])
+  @@index([workOrderId, status])
+  @@index([generatedById])
 }
 
 model WorkOrderItem {
