@@ -89,11 +89,33 @@ enum ChecklistItemStatus {
 enum PhotoCategory {
   GENERAL_ENTRY
   DAMAGE
+  SERVICE_AREA
   BEFORE_SERVICE
   DURING_SERVICE
   AFTER_SERVICE
   DELIVERY
   DOCUMENT
+  DASHBOARD
+  INTERIOR
+  PERSONAL_OBJECT
+  OTHER
+}
+
+enum DamageType {
+  SCRATCH
+  SCUFF
+  DENT
+  CRACK
+  BROKEN
+  LOOSE_PART
+  PEELING_PAINT
+  SCRATCHED_WHEEL
+  DAMAGED_TIRE
+  TORN_SEAT
+  STAIN
+  DASHBOARD_WARNING
+  MALFUNCTION
+  MISSING_ACCESSORY
   OTHER
 }
 
@@ -323,13 +345,22 @@ model InspectionPhoto {
   workOrder       WorkOrder               @relation(fields: [workOrderId], references: [id])
   checklistItemId String?
   checklistItem   WorkOrderChecklistItem? @relation(fields: [checklistItemId], references: [id])
+  workOrderItemId String?
+  workOrderItem   WorkOrderItem?          @relation(fields: [workOrderItemId], references: [id])
   category        PhotoCategory
   region          VehicleRegion
+  damageType      DamageType?
   description     String?
   objectKey       String                  @unique
+  thumbnailKey    String?                 @unique
   size            Int
   mimeType        String
   originalName    String
+  width           Int?
+  height          Int?
+  checksum        String?
+  capturedAt      DateTime?
+  lockedAt        DateTime?
   uploadedById    String
   uploadedBy      User                    @relation(fields: [uploadedById], references: [id])
   deletedAt       DateTime?
@@ -338,6 +369,7 @@ model InspectionPhoto {
 
   @@index([workOrderId, category, deletedAt])
   @@index([checklistItemId])
+  @@index([workOrderItemId])
   @@index([uploadedById])
 }
 
@@ -381,18 +413,19 @@ model GeneratedDocument {
 }
 
 model WorkOrderItem {
-  id          String    @id @default(cuid())
+  id          String            @id @default(cuid())
   workOrderId String
-  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  workOrder   WorkOrder         @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   serviceId   String
-  service     Service   @relation(fields: [serviceId], references: [id])
+  service     Service           @relation(fields: [serviceId], references: [id])
   employeeId  String?
-  employee    Employee? @relation(fields: [employeeId], references: [id])
-  quantity    Int       @default(1)
-  unitPrice   Decimal   @db.Decimal(12, 2)
+  employee    Employee?         @relation(fields: [employeeId], references: [id])
+  quantity    Int               @default(1)
+  unitPrice   Decimal           @db.Decimal(12, 2)
   startedAt   DateTime?
   finishedAt  DateTime?
   notes       String?
+  photos      InspectionPhoto[]
 
   @@index([workOrderId])
 }

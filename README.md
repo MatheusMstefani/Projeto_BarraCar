@@ -37,6 +37,16 @@ npm test
 npm run build
 ```
 
+## Roteiro de revisão operacional
+
+- **Funcionários:** cadastre, edite, inative e confirme que somente ativos aparecem em uma nova OS. Ordens antigas devem continuar mostrando o responsável inativado.
+- **Serviços:** altere preço, duração e status; confirme que o novo preço aparece em novas OS e que itens antigos preservam o valor contratado.
+- **Financeiro:** crie uma entrada e uma saída, marque-as como pagas e confira o saldo. Pendentes e canceladas não entram nos cartões de totais. Lançamentos de OS exibem seu número; manuais exibem “Manual”.
+- **Ordem de Serviço:** adicione vários serviços, quantidades, preços e responsáveis diferentes; remova um item e confira contador/total. Salve, recarregue e confirme persistência. O serviço transacional também cobre edição sem duplicação.
+- **Agenda e pagamento:** uma OS agendada mantém um único agendamento mesmo após edição. Remover a data cancela o agendamento existente. Repetir “Marcar paga” mantém uma única entrada financeira.
+
+Na revisão de 19/07/2026, Prisma Validate, TypeScript, testes e build passaram. O ESLint permaneceu sem erros; os avisos de `<img>` referem-se a imagens servidas por rotas autenticadas e prévias locais `blob:`, para as quais o otimizador do Next não recebe a sessão do usuário.
+
 ## Estrutura
 
 - `app/`: páginas e Server Actions
@@ -74,3 +84,13 @@ npm run lint
 npm test
 npm run build
 ```
+
+### Vistoria fotográfica completa
+
+- Cada envio aceita até 10 originais JPG, PNG ou WEBP; `MAX_PHOTO_SIZE_MB` define o limite individual e mantém compatibilidade com `MAX_IMAGE_SIZE_MB`.
+- O original privado é preservado e uma miniatura WEBP é criada. MIME real, SHA-256, dimensões, autor, data, categoria e região são registrados.
+- Fotos podem ser vinculadas a checklist e serviço. A galeria permite filtros, edição auditada, exclusão lógica e download do original.
+- Evidências de entrada e avaria em OS finalizada, aguardando retirada ou entregue exigem administrador e motivo para alteração ou exclusão.
+- Mudanças nas fotos tornam o PDF atual desatualizado; a próxima geração cria uma versão imutável com fotos, vínculos, avarias, assinaturas e identificação de integridade.
+
+No teste manual, abra uma OS e a aba **Vistoria e fotos**. Envie categorias diferentes, relacione checklist/serviço, filtre, abra o original, edite a descrição e gere duas versões do PDF. Depois finalize a OS e confirme a proteção das evidências. No celular, permita a câmera; fora de `localhost`, o navegador normalmente exige HTTPS.
