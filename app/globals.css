@@ -140,6 +140,17 @@ label {
   padding: 0.8rem;
   border-bottom: 1px solid var(--line);
 }
+.signature {
+  width: 100%;
+  max-width: 700px;
+  height: 220px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  background: white;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
 @media (max-width: 760px) {
   .shell {
     display: block;
