@@ -1,4 +1,5 @@
 "use server";
+import { DomainError } from "@/lib/errors";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -22,7 +23,7 @@ export async function createVehicle(
 ): Promise<ActionState> {
   try {
     if ((await auth())?.user.role !== "ADMIN") {
-      throw new Error("Sem permissão.");
+      throw new DomainError("Sem permissão.");
     }
     const value = vehicleSchema.parse(Object.fromEntries(data));
     await db.vehicle.create({

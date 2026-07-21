@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import sharp from "sharp";
 import { db } from "@/lib/db";
+import { DomainError } from "@/lib/errors";
 import { privateStorage, type PrivateStorage } from "@/lib/storage";
 
 type OrderForPdf = Prisma.WorkOrderGetPayload<{
@@ -151,44 +152,58 @@ export async function buildWorkOrderPdf(
   return pdf.save();
 }
 
+class DocumentVersionConflictError extends Error {}
+
+/**
+ * O PDF (S3 + sharp + pdf-lib) é montado FORA da transação para não segurar
+ * conexão nem lock durante o trabalho pesado. A transação curta confirma, sob
+ * advisory lock, que a versão calculada continua sendo a próxima; se outra
+ * geração concluiu no intervalo, o arquivo é descartado e tentamos de novo.
+ */
 export async function generateWorkOrderDocument(
   workOrderId: string,
   actorId: string,
   storage: PrivateStorage = privateStorage,
 ) {
-  let storedKey: string | undefined;
-  try {
-    return await db.$transaction(
-      async (tx) => {
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    const latest = await db.generatedDocument.aggregate({
+      _max: { version: true },
+      where: { workOrderId, type: DocumentType.WORK_ORDER_PDF },
+    });
+    const version = (latest._max.version ?? 0) + 1;
+    const order = await db.workOrder.findUniqueOrThrow({
+      where: { id: workOrderId },
+      include: {
+        customer: true,
+        vehicle: true,
+        items: { include: { service: true, employee: true } },
+        checklistItems: {
+          include: { templateItem: true },
+          orderBy: { templateItem: { displayOrder: "asc" } },
+        },
+        photos: {
+          include: {
+            checklistItem: { include: { templateItem: true } },
+            workOrderItem: { include: { service: true } },
+          },
+        },
+        signatures: true,
+      },
+    });
+    const bytes = await buildWorkOrderPdf(order, storage, version);
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const storedKey = `work-orders/${workOrderId}/documents/os-${order.number}-v${version}-${randomUUID()}.pdf`;
+    await storage.put(storedKey, bytes, "application/pdf");
+    try {
+      return await db.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${workOrderId}))`;
-        const latest = await tx.generatedDocument.aggregate({
+        const current = await tx.generatedDocument.aggregate({
           _max: { version: true },
           where: { workOrderId, type: DocumentType.WORK_ORDER_PDF },
         });
-        const version = (latest._max.version ?? 0) + 1;
-        const order = await tx.workOrder.findUniqueOrThrow({
-          where: { id: workOrderId },
-          include: {
-            customer: true,
-            vehicle: true,
-            items: { include: { service: true, employee: true } },
-            checklistItems: {
-              include: { templateItem: true },
-              orderBy: { templateItem: { displayOrder: "asc" } },
-            },
-            photos: {
-              include: {
-                checklistItem: { include: { templateItem: true } },
-                workOrderItem: { include: { service: true } },
-              },
-            },
-            signatures: true,
-          },
-        });
-        const bytes = await buildWorkOrderPdf(order, storage, version);
-        const sha256 = createHash("sha256").update(bytes).digest("hex");
-        storedKey = `work-orders/${workOrderId}/documents/os-${order.number}-v${version}-${randomUUID()}.pdf`;
-        await storage.put(storedKey, bytes, "application/pdf");
+        if ((current._max.version ?? 0) + 1 !== version)
+          throw new DocumentVersionConflictError();
         await tx.generatedDocument.updateMany({
           where: {
             workOrderId,
@@ -217,11 +232,13 @@ export async function generateWorkOrderDocument(
           },
         });
         return document;
-      },
-      { timeout: 30_000 },
-    );
-  } catch (error) {
-    if (storedKey) await storage.delete?.(storedKey).catch(() => undefined);
-    throw error;
+      });
+    } catch (error) {
+      await storage.delete?.(storedKey).catch(() => undefined);
+      if (error instanceof DocumentVersionConflictError && attempt < MAX_ATTEMPTS)
+        continue;
+      throw error;
+    }
   }
+  throw new DomainError("Não foi possível gerar o PDF. Tente novamente.");
 }

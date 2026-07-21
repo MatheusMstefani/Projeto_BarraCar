@@ -1,4 +1,5 @@
 "use server";
+import { DomainError } from "@/lib/errors";
 
 import { ServiceCategory } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -25,7 +26,7 @@ const serviceSchema = z.object({
 
 async function admin() {
   if ((await auth())?.user.role !== "ADMIN") {
-    throw new Error("Apenas administradores podem alterar serviços.");
+    throw new DomainError("Apenas administradores podem alterar serviços.");
   }
 }
 

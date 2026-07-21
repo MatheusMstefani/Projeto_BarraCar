@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import { ChecklistItemStatus, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
@@ -5,7 +6,7 @@ type Database = Prisma.TransactionClient | typeof db;
 
 export async function ensureWorkOrderChecklist(workOrderId: string, database: Database = db) {
   const template = await database.checklistTemplate.findFirst({ where: { active: true }, include: { items: { where: { active: true }, orderBy: { displayOrder: "asc" } } } });
-  if (!template) throw new Error("Nenhum checklist ativo foi configurado.");
+  if (!template) throw new DomainError("Nenhum checklist ativo foi configurado.");
   await database.workOrderChecklistItem.createMany({ data: template.items.map((item) => ({ workOrderId, templateItemId: item.id })), skipDuplicates: true });
   return database.workOrderChecklistItem.findMany({ where: { workOrderId }, include: { templateItem: true }, orderBy: { templateItem: { displayOrder: "asc" } } });
 }

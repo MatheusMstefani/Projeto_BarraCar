@@ -1,4 +1,5 @@
 "use server";
+import { DomainError } from "@/lib/errors";
 
 import { WorkOrderStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -24,7 +25,7 @@ export async function createOrder(
 ): Promise<ActionState> {
   try {
     const session = await auth();
-    if (session?.user.role !== "ADMIN") throw new Error("Sem permissão.");
+    if (session?.user.role !== "ADMIN") throw new DomainError("Sem permissão.");
 
     const items = itemSchema
       .array()
@@ -35,7 +36,7 @@ export async function createOrder(
       : null;
 
     if (scheduledAt && Number.isNaN(scheduledAt.getTime())) {
-      throw new Error("Informe uma data de agendamento válida.");
+      throw new DomainError("Informe uma data de agendamento válida.");
     }
 
     await saveWorkOrder(
@@ -61,7 +62,7 @@ export async function payOrder(
 ): Promise<ActionState> {
   try {
     const session = await auth();
-    if (session?.user.role !== "ADMIN") throw new Error("Sem permissão.");
+    if (session?.user.role !== "ADMIN") throw new DomainError("Sem permissão.");
 
     await markWorkOrderPaid(String(data.get("id")), session.user.id);
     revalidatePath("/ordens");

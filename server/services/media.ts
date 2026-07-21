@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import { fileTypeFromBuffer } from "file-type";
 import {
   DamageType,
@@ -29,10 +30,10 @@ export async function validateImage(
     1024,
 ) {
   if (!bytes.length || bytes.length > maxBytes)
-    throw new Error("A imagem excede o tamanho máximo permitido.");
+    throw new DomainError("A imagem excede o tamanho máximo permitido.");
   const detected = await fileTypeFromBuffer(bytes);
   if (!detected || !imageTypes.has(detected.mime))
-    throw new Error("Formato inválido. Envie JPG, PNG ou WEBP.");
+    throw new DomainError("Formato inválido. Envie JPG, PNG ou WEBP.");
   return detected;
 }
 
@@ -54,12 +55,12 @@ export async function addPhoto(
 ) {
   const type = await validateImage(input.bytes);
   if (input.category === PhotoCategory.DAMAGE && !input.damageType)
-    throw new Error("Informe o tipo da avaria.");
+    throw new DomainError("Informe o tipo da avaria.");
   const originalName = input.originalName
     .trim()
     .replace(/[\u0000-\u001f]/g, "")
     .slice(0, 255);
-  if (!originalName) throw new Error("Nome de arquivo inválido.");
+  if (!originalName) throw new DomainError("Nome de arquivo inválido.");
   const order = await db.workOrder.findUniqueOrThrow({
     where: { id: input.workOrderId },
   });
@@ -137,7 +138,7 @@ export async function removePhoto(
         photo.category === PhotoCategory.DAMAGE) &&
       lockedStatuses.has(photo.workOrder.status);
     if (protectedEvidence && (actor.role !== Role.ADMIN || !reason?.trim()))
-      throw new Error(
+      throw new DomainError(
         "Esta evidência exige administrador e motivo para remoção.",
       );
     const updated = await tx.inspectionPhoto.update({
@@ -169,7 +170,7 @@ export async function updatePhotoDescription(
         photo.category === PhotoCategory.DAMAGE) &&
       lockedStatuses.has(photo.workOrder.status);
     if (protectedEvidence && (actor.role !== Role.ADMIN || !reason?.trim()))
-      throw new Error(
+      throw new DomainError(
         "Esta evidência exige administrador e motivo para alteração.",
       );
     const updated = await tx.inspectionPhoto.update({

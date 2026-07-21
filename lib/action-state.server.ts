@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import type { ActionState } from "@/lib/action-state";
+import { DomainError } from "@/lib/errors";
 
 export function actionFailure(error: unknown, fallback: string): ActionState {
   if (error instanceof ZodError) {
@@ -29,17 +30,13 @@ export function actionFailure(error: unknown, fallback: string): ActionState {
     return { status: "error", message: "O registro não foi encontrado." };
   }
 
-  if (
-    error instanceof Prisma.PrismaClientKnownRequestError ||
-    error instanceof Prisma.PrismaClientValidationError
-  ) {
-    return { status: "error", message: fallback };
+  if (error instanceof DomainError && error.message) {
+    return { status: "error", message: error.message };
   }
 
-  return {
-    status: "error",
-    message: error instanceof Error && error.message ? error.message : fallback,
-  };
+  // Qualquer outro erro é interno (conexão, bug, infraestrutura): a mensagem
+  // real não deve chegar ao usuário.
+  return { status: "error", message: fallback };
 }
 
 export function actionSuccess(message: string): ActionState {

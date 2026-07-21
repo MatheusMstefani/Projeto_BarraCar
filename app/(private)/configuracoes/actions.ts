@@ -1,4 +1,5 @@
 "use server";
+import { DomainError } from "@/lib/errors";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -25,7 +26,7 @@ const updateItemSchema = z.object({
 async function admin() {
   const session = await auth();
   if (session?.user.role !== "ADMIN") {
-    throw new Error("Apenas administradores podem alterar o checklist.");
+    throw new DomainError("Apenas administradores podem alterar o checklist.");
   }
 }
 

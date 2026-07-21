@@ -1,4 +1,5 @@
 "use server";
+import { DomainError } from "@/lib/errors";
 
 import {
   EntryType,
@@ -35,7 +36,7 @@ const schema = z.object({
 async function actor() {
   const session = await auth();
   if (session?.user.role !== "ADMIN")
-    throw new Error("Apenas administradores podem alterar o financeiro.");
+    throw new DomainError("Apenas administradores podem alterar o financeiro.");
   return session.user;
 }
 
@@ -84,7 +85,7 @@ export async function updateFinancialStatus(_state: ActionState, data: FormData)
         select: { workOrderId: true },
       });
       if (entry.workOrderId)
-        throw new Error("Lançamentos automáticos devem ser atualizados pela Ordem de Serviço.");
+        throw new DomainError("Lançamentos automáticos devem ser atualizados pela Ordem de Serviço.");
       await tx.financialEntry.update({
         where: { id },
         data: { status, paidAt: status === FinancialStatus.PAID ? new Date() : null },

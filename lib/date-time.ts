@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 const DEFAULT_TIME_ZONE = "America/Sao_Paulo";
 
 type CivilDateParts = {
@@ -74,7 +75,7 @@ export function getAppTimeZone() {
 /** Stores a calendar-only value at UTC midnight, independent of server TZ. */
 export function parseCivilDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new Error("Data civil inválida.");
+    throw new DomainError("Data civil inválida.");
   }
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
@@ -83,7 +84,7 @@ export function parseCivilDate(value: string) {
     date.getUTCMonth() !== month - 1 ||
     date.getUTCDate() !== day
   ) {
-    throw new Error("Data civil inválida.");
+    throw new DomainError("Data civil inválida.");
   }
   return date;
 }

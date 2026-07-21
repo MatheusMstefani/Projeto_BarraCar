@@ -1,4 +1,5 @@
 "use server";
+import { DomainError } from "@/lib/errors";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -20,7 +21,7 @@ export async function createCustomer(
 ): Promise<ActionState> {
   try {
     const session = await auth();
-    if (session?.user.role !== "ADMIN") throw new Error("Sem permissão.");
+    if (session?.user.role !== "ADMIN") throw new DomainError("Sem permissão.");
 
     const value = customerSchema.parse(Object.fromEntries(data));
     await db.customer.create({ data: value });

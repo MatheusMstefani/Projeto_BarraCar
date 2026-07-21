@@ -1,4 +1,5 @@
 "use server";
+import { DomainError } from "@/lib/errors";
 import {
   ChecklistItemStatus,
   DamageType,
@@ -40,7 +41,7 @@ const signatureSchema = z.object({
 
 async function actor() {
   const session = await auth();
-  if (!session?.user.id) throw new Error("Sessão inválida.");
+  if (!session?.user.id) throw new DomainError("Sessão inválida.");
   return session.user;
 }
 export async function initializeChecklist(_state: ActionState, data: FormData): Promise<ActionState> {
@@ -77,10 +78,13 @@ export async function uploadPhotos(
   _previous: PhotoUploadState,
   data: FormData,
 ): Promise<PhotoUploadState> {
+  const workOrderId = String(data.get("workOrderId") ?? "");
+  let saved = 0;
+  let total = 0;
   try {
     const user = await actor();
     const parsed = photoUploadSchema.parse({
-      workOrderId: String(data.get("workOrderId") ?? ""),
+      workOrderId,
       category: String(data.get("category") ?? ""),
       region: String(data.get("region") ?? ""),
       damageType: data.get("damageType")
@@ -95,9 +99,10 @@ export async function uploadPhotos(
     const files = data
       .getAll("photos")
       .filter((value): value is File => value instanceof File && value.size > 0);
+    total = files.length;
     if (!files.length || files.length > 10)
       return { success: false, message: "Selecione entre 1 e 10 fotos." };
-    for (const file of files)
+    for (const file of files) {
       await addPhoto(
         {
           ...parsed,
@@ -106,16 +111,24 @@ export async function uploadPhotos(
         },
         user.id,
       );
-    revalidatePath(`/ordens/${parsed.workOrderId}`);
+      saved += 1;
+    }
     return { success: true, message: `${files.length} foto(s) salva(s) com sucesso.` };
   } catch (error) {
-    const message =
+    const cause =
       error instanceof z.ZodError
         ? "Os dados da foto são inválidos. Revise categoria e região."
-        : error instanceof Error
+        : error instanceof DomainError && error.message
           ? error.message
           : "Não foi possível salvar as fotos.";
+    const message =
+      saved > 0
+        ? `${saved} de ${total} foto(s) foram salvas antes do erro: ${cause}`
+        : cause;
     return { success: false, message };
+  } finally {
+    // Mantém a galeria coerente mesmo quando só parte das fotos foi salva.
+    if (saved > 0 && workOrderId) revalidatePath(`/ordens/${workOrderId}`);
   }
 }
 export async function collectSignature(
@@ -126,7 +139,7 @@ export async function collectSignature(
     const user = await actor();
     const workOrderId = String(data.get("workOrderId"));
     const encoded = String(data.get("image")).split(",")[1];
-    if (!encoded) throw new Error("Desenhe a assinatura antes de confirmar.");
+    if (!encoded) throw new DomainError("Desenhe a assinatura antes de confirmar.");
     const signature = signatureSchema.parse({
       type: data.get("type"),
       signerName: data.get("signerName"),

@@ -1,8 +1,10 @@
 import { createEmployee, updateEmployee } from "./actions";
 import { ActionForm } from "@/components/action-form";
+import { requireAdminPage } from "@/lib/authorization";
 import { db } from "@/lib/db";
 
 export default async function Employees() {
+  await requireAdminPage();
   const items = await db.employee.findMany({ orderBy: { name: "asc" } });
 
   return (

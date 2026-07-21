@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { formatCurrency } from "@/lib/domain";
 import { formatCivilDate, getCivilDateInputValue } from "@/lib/date-time";
 import { ActionForm } from "@/components/action-form";
+import { requireAdminPage } from "@/lib/authorization";
 import { createFinancialEntry, updateFinancialStatus } from "./actions";
 
 const statusLabels: Record<FinancialStatus, string> = {
@@ -13,6 +14,7 @@ const statusLabels: Record<FinancialStatus, string> = {
 };
 
 export default async function Finance() {
+  await requireAdminPage();
   const [items, totals] = await Promise.all([
     db.financialEntry.findMany({
       include: { workOrder: true },

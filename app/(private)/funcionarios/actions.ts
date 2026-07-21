@@ -1,4 +1,5 @@
 "use server";
+import { DomainError } from "@/lib/errors";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -20,7 +21,7 @@ const employeeSchema = z.object({
 
 async function admin() {
   if ((await auth())?.user.role !== "ADMIN") {
-    throw new Error("Apenas administradores podem alterar funcionários.");
+    throw new DomainError("Apenas administradores podem alterar funcionários.");
   }
 }
 

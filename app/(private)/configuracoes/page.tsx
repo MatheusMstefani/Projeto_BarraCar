@@ -1,8 +1,10 @@
 import { createChecklistItem, updateChecklistItem } from "./actions";
 import { ActionForm } from "@/components/action-form";
+import { requireAdminPage } from "@/lib/authorization";
 import { db } from "@/lib/db";
 
 export default async function Settings() {
+  await requireAdminPage();
   const [value, template] = await Promise.all([
     db.companySettings.findUnique({ where: { id: "default" } }),
     db.checklistTemplate.findFirst({

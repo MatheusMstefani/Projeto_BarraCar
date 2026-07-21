@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import {
   AppointmentOrigin,
   AppointmentStatus,
@@ -33,13 +34,13 @@ const decimalFromCents = (value: number) => new Prisma.Decimal(value).div(100);
 export async function saveWorkOrder(input: WorkOrderInput, actorId?: string, id?: string) {
   return db.$transaction(async (tx) => {
     if (!input.customerId || !input.vehicleId || !input.items.length)
-      throw new Error("Cliente, veículo e ao menos um serviço são obrigatórios.");
+      throw new DomainError("Cliente, veículo e ao menos um serviço são obrigatórios.");
     if (input.items.some((item) => item.quantity <= 0 || item.unitPrice < 0 || !item.serviceId))
-      throw new Error("Os itens da Ordem possuem valores inválidos.");
+      throw new DomainError("Os itens da Ordem possuem valores inválidos.");
 
     const vehicle = await tx.vehicle.findUniqueOrThrow({ where: { id: input.vehicleId } });
     if (vehicle.customerId !== input.customerId)
-      throw new Error("O veículo não pertence ao cliente selecionado.");
+      throw new DomainError("O veículo não pertence ao cliente selecionado.");
 
     const normalizedItems = input.items.map((item) => ({
       ...item,
@@ -49,7 +50,7 @@ export async function saveWorkOrder(input: WorkOrderInput, actorId?: string, id?
       (sum, item) => sum + item.quantity * item.unitPriceCents,
       0,
     ) - cents(input.discount ?? 0);
-    if (totalCents < 0) throw new Error("O desconto não pode superar os serviços.");
+    if (totalCents < 0) throw new DomainError("O desconto não pode superar os serviços.");
 
     const data = {
       customerId: input.customerId,
@@ -120,7 +121,7 @@ async function reconcileItems(
       : existing.find(
           (candidate) => unused.has(candidate.id) && candidate.serviceId === item.serviceId,
         );
-    if (item.id && !matched) throw new Error("Um item informado não pertence a esta Ordem de Serviço.");
+    if (item.id && !matched) throw new DomainError("Um item informado não pertence a esta Ordem de Serviço.");
 
     const data = {
       serviceId: item.serviceId,
@@ -190,7 +191,7 @@ export async function markWorkOrderPaid(id: string, actorId?: string) {
   return db.$transaction(async (tx) => {
     const current = await tx.workOrder.findUniqueOrThrow({ where: { id } });
     if (current.status === WorkOrderStatus.CANCELED)
-      throw new Error("Uma Ordem de Serviço cancelada não pode ser marcada como paga.");
+      throw new DomainError("Uma Ordem de Serviço cancelada não pode ser marcada como paga.");
     const order = await tx.workOrder.update({
       where: { id },
       data: { paymentStatus: PaymentStatus.PAID },

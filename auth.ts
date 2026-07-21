@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
+import { cache } from "react";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { authConfig } from "@/auth.config";
@@ -83,8 +84,9 @@ export const { handlers, signIn, signOut } = nextAuth;
  * Returns only sessions whose user still exists and is active. The role and
  * profile are read from the database on every protected server request, so JWT
  * claims are never trusted after an administrator changes the account.
+ * Wrapped in React cache() so layout, shell and page share one lookup per request.
  */
-export async function auth() {
+export const auth = cache(async () => {
   const session = await nextAuth.auth();
   if (!session?.user.id) return null;
 
@@ -104,4 +106,4 @@ export async function auth() {
       role: currentUser.role,
     },
   };
-}
+});
