@@ -2,6 +2,7 @@ import Link from "next/link";
 import { OrderForm } from "@/components/order-form";
 import { Pagination } from "@/components/pagination";
 import { PayOrderButton } from "@/components/pay-order-button";
+import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
 import { db } from "@/lib/db";
 import { formatCurrency, formatDate } from "@/lib/domain";
 
@@ -78,6 +79,12 @@ export default async function Orders({
                       {formatCurrency(order.total.toString())}
                     </td>
                     <td>
+                      <div className="flex flex-col items-start gap-1">
+                        <OrderStatusBadge status={order.status} />
+                        <PaymentStatusBadge status={order.paymentStatus} />
+                      </div>
+                    </td>
+                    <td>
                       {order.paymentStatus !== "PAID" &&
                         order.status !== "CANCELED" && (
                           <PayOrderButton workOrderId={order.id} />
@@ -87,7 +94,7 @@ export default async function Orders({
                 ))}
                 {!orders.length && (
                   <tr>
-                    <td colSpan={3} className="muted">
+                    <td colSpan={4} className="muted">
                       Nenhuma ordem de serviço cadastrada.
                     </td>
                   </tr>

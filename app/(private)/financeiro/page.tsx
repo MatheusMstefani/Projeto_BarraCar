@@ -3,15 +3,10 @@ import { db } from "@/lib/db";
 import { formatCurrency } from "@/lib/domain";
 import { formatCivilDate, getCivilDateInputValue } from "@/lib/date-time";
 import { ActionForm } from "@/components/action-form";
+import { MetricCard } from "@/components/ui/metric-card";
+import { FinancialStatusBadge } from "@/components/ui/status-badge";
 import { requireAdminPage } from "@/lib/authorization";
 import { createFinancialEntry, updateFinancialStatus } from "./actions";
-
-const statusLabels: Record<FinancialStatus, string> = {
-  PENDING: "Pendente",
-  PAID: "Pago",
-  OVERDUE: "Vencido",
-  CANCELED: "Cancelado",
-};
 
 export default async function Finance() {
   await requireAdminPage();
@@ -36,18 +31,13 @@ export default async function Finance() {
     <>
       <h1>Financeiro</h1>
       <div className="grid">
-        <div className="card metric">
-          <span>Entradas pagas</span>
-          <strong>{formatCurrency(income)}</strong>
-        </div>
-        <div className="card metric">
-          <span>Saídas pagas</span>
-          <strong>{formatCurrency(expense)}</strong>
-        </div>
-        <div className="card metric">
-          <span>Saldo</span>
-          <strong>{formatCurrency(income - expense)}</strong>
-        </div>
+        <MetricCard label="Entradas pagas" value={formatCurrency(income)} badge={{ label: "Entradas", tone: "info" }} />
+        <MetricCard label="Saídas pagas" value={formatCurrency(expense)} />
+        <MetricCard
+          label="Saldo"
+          value={formatCurrency(income - expense)}
+          badge={income - expense >= 0 ? { label: "Positivo", tone: "success" } : { label: "Negativo", tone: "danger" }}
+        />
       </div>
 
       <ActionForm action={createFinancialEntry} className="card form" resetOnSuccess>
@@ -148,7 +138,7 @@ export default async function Finance() {
                 <td>
                   {entry.workOrder ? (
                     <>
-                      <strong>{statusLabels[entry.status]}</strong>
+                      <FinancialStatusBadge status={entry.status} />
                       <br />
                       <small className="muted">Gerenciado pela OS</small>
                     </>

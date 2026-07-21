@@ -40,18 +40,28 @@ export function resolveStorageConfig(environment: StorageEnvironment = process.e
   };
 }
 
-const storageConfig = resolveStorageConfig();
-export const storageBucket = storageConfig.bucket;
-
-const client = new S3Client({
-  endpoint: storageConfig.endpoint,
-  region: storageConfig.region,
-  forcePathStyle: true,
-  credentials: {
-    accessKeyId: storageConfig.accessKeyId,
-    secretAccessKey: storageConfig.secretAccessKey,
-  },
-});
+// Inicialização preguiçosa: o `next build` importa os módulos com
+// NODE_ENV=production e sem as variáveis S3_*; a validação rígida continua
+// valendo em produção, mas só na primeira operação de storage.
+let cached: { client: S3Client; bucket: string } | null = null;
+function storage() {
+  if (!cached) {
+    const config = resolveStorageConfig();
+    cached = {
+      bucket: config.bucket,
+      client: new S3Client({
+        endpoint: config.endpoint,
+        region: config.region,
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: config.accessKeyId,
+          secretAccessKey: config.secretAccessKey,
+        },
+      }),
+    };
+  }
+  return cached;
+}
 
 export interface PrivateStorage {
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
@@ -61,16 +71,19 @@ export interface PrivateStorage {
 
 export const privateStorage: PrivateStorage = {
   async put(key, body, contentType) {
+    const { client, bucket } = storage();
     await client.send(
-      new PutObjectCommand({ Bucket: storageBucket, Key: key, Body: body, ContentType: contentType }),
+      new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }),
     );
   },
   async get(key) {
-    const result = await client.send(new GetObjectCommand({ Bucket: storageBucket, Key: key }));
+    const { client, bucket } = storage();
+    const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     if (!result.Body) throw new Error("Arquivo não encontrado.");
     return result.Body.transformToByteArray();
   },
   async delete(key) {
-    await client.send(new DeleteObjectCommand({ Bucket: storageBucket, Key: key }));
+    const { client, bucket } = storage();
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
   },
 };
