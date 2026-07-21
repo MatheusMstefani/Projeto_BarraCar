@@ -86,7 +86,7 @@ export function ShellChrome({
         </div>
         <div className="px-md mb-md">
           <div className="relative flex items-center">
-            <Icon name="search" className="absolute left-3 text-on-surface-variant text-[16px]" />
+            <Icon name="search" size={16} className="absolute left-3 text-on-surface-variant" />
             <input
               type="text"
               value={query}
@@ -150,7 +150,7 @@ export function ShellChrome({
             </button>
             <nav className="flex items-center text-on-surface-variant text-xs space-x-1">
               <span>Início</span>
-              <Icon name="chevron_right" className="text-[14px]" />
+              <Icon name="chevron_right" size={14} />
               <span className="text-primary font-bold">{current?.label ?? "Página"}</span>
             </nav>
           </div>
@@ -159,7 +159,7 @@ export function ShellChrome({
             {isAdmin && (
               <Link
                 href="/ordens"
-                className="px-md py-1.5 text-body-md bg-primary-container text-on-primary-container rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg font-semibold"
+                className="px-md py-1.5 text-body-md bg-primary-container text-on-primary-container rounded-lg hover:opacity-90 transition-all active:scale-95 font-semibold"
               >
                 Nova OS
               </Link>
