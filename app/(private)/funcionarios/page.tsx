@@ -10,9 +10,6 @@ export default async function Employees() {
   return (
     <>
       <h1>Funcionários</h1>
-      <p className="muted">
-        Cadastre a equipe para atribuir um responsável a cada serviço da OS.
-      </p>
       <ActionForm
         action={createEmployee}
         submitLabel="Salvar funcionário"

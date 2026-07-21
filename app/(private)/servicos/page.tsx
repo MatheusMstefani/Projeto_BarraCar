@@ -18,10 +18,6 @@ export default async function Services() {
   return (
     <>
       <h1>Serviços</h1>
-      <p className="muted">
-        Os preços definidos aqui são carregados automaticamente ao criar uma OS
-        e ainda podem ser ajustados nela.
-      </p>
       <ActionForm
         action={createService}
         submitLabel="Salvar serviço"

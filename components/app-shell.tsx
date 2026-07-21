@@ -1,20 +1,8 @@
 import { WorkOrderStatus } from "@prisma/client";
 import { auth } from "@/auth";
-import { ShellChrome, type NavLink } from "@/components/shell-chrome";
+import { ShellChrome, type NavGroup } from "@/components/shell-chrome";
 import { ADMIN_ONLY_ROUTES } from "@/lib/authorization";
 import { db } from "@/lib/db";
-
-const allLinks: Omit<NavLink, "badge">[] = [
-  { href: "/", label: "Dashboard", icon: "dashboard" },
-  { href: "/ordens", label: "Ordens de Serviço", icon: "receipt_long" },
-  { href: "/agenda", label: "Agenda", icon: "calendar_today" },
-  { href: "/clientes", label: "Clientes", icon: "group" },
-  { href: "/veiculos", label: "Veículos", icon: "directions_car" },
-  { href: "/servicos", label: "Serviços", icon: "cleaning_services" },
-  { href: "/funcionarios", label: "Funcionários", icon: "engineering" },
-  { href: "/financeiro", label: "Financeiro", icon: "payments" },
-  { href: "/configuracoes", label: "Configurações", icon: "settings" },
-];
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const [session, openOrders] = await Promise.all([
@@ -33,15 +21,49 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     }),
   ]);
   const isAdmin = session?.user.role === "ADMIN";
-  const links: NavLink[] = allLinks
-    .filter((link) => isAdmin || !ADMIN_ONLY_ROUTES.has(link.href))
-    .map((link) => (link.href === "/ordens" && openOrders ? { ...link, badge: openOrders } : link));
+
+  const groups: NavGroup[] = [
+    {
+      key: "operacao",
+      label: "Operação",
+      icon: "receipt_long",
+      items: [
+        { href: "/ordens", label: "Ordens de Serviço", icon: "receipt_long", badge: openOrders || undefined },
+        { href: "/agenda", label: "Agenda", icon: "calendar_today" },
+      ],
+    },
+    {
+      key: "cadastros",
+      label: "Cadastros",
+      icon: "group",
+      items: [
+        { href: "/clientes", label: "Clientes", icon: "group" },
+        { href: "/veiculos", label: "Veículos", icon: "directions_car" },
+        { href: "/servicos", label: "Serviços", icon: "cleaning_services" },
+        { href: "/funcionarios", label: "Funcionários", icon: "engineering" },
+      ],
+    },
+    {
+      key: "gestao",
+      label: "Gestão",
+      icon: "payments",
+      items: [
+        { href: "/financeiro", label: "Financeiro", icon: "payments" },
+        { href: "/configuracoes", label: "Configurações", icon: "settings" },
+      ],
+    },
+  ]
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => isAdmin || !ADMIN_ONLY_ROUTES.has(item.href)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <ShellChrome
       user={{ name: session?.user.name ?? "", role: session?.user.role ?? "EMPLOYEE" }}
       isAdmin={isAdmin}
-      links={links}
+      groups={groups}
     >
       {children}
     </ShellChrome>

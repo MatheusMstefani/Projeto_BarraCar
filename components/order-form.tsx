@@ -60,12 +60,7 @@ export function OrderForm({
 
   return (
     <form action={formAction} className="card form">
-      <div>
-        <h2>Nova ordem</h2>
-        <p className="muted">
-          Adicione quantos serviços forem necessários.
-        </p>
-      </div>
+      <h2>Nova ordem</h2>
       <label>
         Cliente
         <select
