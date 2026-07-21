@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { uploadPhotos } from "@/app/(private)/ordens/[id]/actions";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { uploadPhotos, type PhotoUploadState } from "@/app/(private)/ordens/[id]/actions";
 
 type Option = { id: string; label: string };
 
 export function PhotoUpload({ workOrderId }: { workOrderId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [category, setCategory] = useState("GENERAL_ENTRY");
@@ -14,7 +15,8 @@ export function PhotoUpload({ workOrderId }: { workOrderId: string }) {
     checklist: Option[];
     services: Option[];
   }>({ checklist: [], services: [] });
-  const [sending, setSending] = useState(false);
+  const initialState: PhotoUploadState = { success: false, message: "" };
+  const [state, formAction, pending] = useActionState(uploadPhotos, initialState);
 
   useEffect(() => {
     fetch(`/api/work-orders/${workOrderId}/photo-options`)
@@ -26,6 +28,12 @@ export function PhotoUpload({ workOrderId }: { workOrderId: string }) {
     setPreviews(urls);
     return () => urls.forEach(URL.revokeObjectURL);
   }, [files]);
+  useEffect(() => {
+    if (!state.success) return;
+    setFiles([]);
+    formRef.current?.reset();
+    setCategory("GENERAL_ENTRY");
+  }, [state]);
 
   function replaceFiles(next: File[]) {
     setFiles(next);
@@ -37,9 +45,9 @@ export function PhotoUpload({ workOrderId }: { workOrderId: string }) {
 
   return (
     <form
-      action={uploadPhotos}
+      ref={formRef}
+      action={formAction}
       className="card form"
-      onSubmit={() => setSending(true)}
     >
       <input type="hidden" name="workOrderId" value={workOrderId} />
       <h3>Adicionar fotos</h3>
@@ -181,8 +189,9 @@ export function PhotoUpload({ workOrderId }: { workOrderId: string }) {
           </div>
         ))}
       </div>
-      <button disabled={sending || files.length === 0}>
-        {sending
+      {state.message && <p className={state.success ? "success" : "error"} role="status">{state.message}</p>}
+      <button disabled={pending || files.length === 0}>
+        {pending
           ? "Enviando..."
           : `Salvar ${files.length || ""} foto${files.length === 1 ? "" : "s"}`}
       </button>

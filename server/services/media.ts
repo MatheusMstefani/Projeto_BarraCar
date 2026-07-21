@@ -59,10 +59,18 @@ export async function addPhoto(
     .trim()
     .replace(/[\u0000-\u001f]/g, "")
     .slice(0, 255);
-  if (!originalName) throw new Error("Nome de arquivo invÃ¡lido.");
+  if (!originalName) throw new Error("Nome de arquivo inválido.");
   const order = await db.workOrder.findUniqueOrThrow({
     where: { id: input.workOrderId },
   });
+  if (input.checklistItemId)
+    await db.workOrderChecklistItem.findFirstOrThrow({
+      where: { id: input.checklistItemId, workOrderId: order.id },
+    });
+  if (input.workOrderItemId)
+    await db.workOrderItem.findFirstOrThrow({
+      where: { id: input.workOrderItemId, workOrderId: order.id },
+    });
   const photoId = randomUUID();
   const key = `work-orders/${order.id}/photos/${photoId}/original.${type.ext}`;
   const thumbnailKey = `work-orders/${order.id}/photos/${photoId}/thumbnail.webp`;
@@ -78,18 +86,11 @@ export async function addPhoto(
     .webp({ quality: 78 })
     .toBuffer();
   const checksum = createHash("sha256").update(input.bytes).digest("hex");
-  await storage.put(key, input.bytes, type.mime);
-  await storage.put(thumbnailKey, thumbnail, "image/webp");
-  return db.$transaction(async (tx) => {
-    if (input.checklistItemId)
-      await tx.workOrderChecklistItem.findFirstOrThrow({
-        where: { id: input.checklistItemId, workOrderId: order.id },
-      });
-    if (input.workOrderItemId)
-      await tx.workOrderItem.findFirstOrThrow({
-        where: { id: input.workOrderItemId, workOrderId: order.id },
-      });
-    const photo = await tx.inspectionPhoto.create({
+  try {
+    await storage.put(key, input.bytes, type.mime);
+    await storage.put(thumbnailKey, thumbnail, "image/webp");
+    return await db.$transaction(async (tx) => {
+      const photo = await tx.inspectionPhoto.create({
       data: {
         id: photoId,
         workOrderId: order.id,
@@ -111,10 +112,14 @@ export async function addPhoto(
         uploadedById: actorId,
       },
     });
-    await invalidateDocuments(tx, order.id);
-    await audit(tx, actorId, order.id, "PHOTO_ADDED", { photoId: photo.id });
-    return photo;
-  });
+      await invalidateDocuments(tx, order.id);
+      await audit(tx, actorId, order.id, "PHOTO_ADDED", { photoId: photo.id });
+      return photo;
+    });
+  } catch (error) {
+    await Promise.allSettled([storage.delete?.(key), storage.delete?.(thumbnailKey)]);
+    throw error;
+  }
 }
 
 export async function removePhoto(
@@ -193,10 +198,16 @@ export async function saveSignature(
 ) {
   const detected = await validateImage(input.bytes, 2 * 1024 * 1024);
   await db.workOrder.findUniqueOrThrow({ where: { id: input.workOrderId } });
+  const previous = await db.signature.findUnique({
+    where: {
+      workOrderId_type: { workOrderId: input.workOrderId, type: input.type },
+    },
+  });
   const key = `work-orders/${input.workOrderId}/signatures/${input.type}-${randomUUID()}.${detected.ext}`;
-  await storage.put(key, input.bytes, detected.mime);
-  return db.$transaction(async (tx) => {
-    const signature = await tx.signature.upsert({
+  try {
+    await storage.put(key, input.bytes, detected.mime);
+    const signature = await db.$transaction(async (tx) => {
+      const saved = await tx.signature.upsert({
       where: {
         workOrderId_type: { workOrderId: input.workOrderId, type: input.type },
       },
@@ -219,12 +230,20 @@ export async function saveSignature(
         collectedById: actorId,
       },
     });
-    await audit(tx, actorId, input.workOrderId, "SIGNATURE_COLLECTED", {
-      signatureId: signature.id,
-      type: input.type,
+      await invalidateDocuments(tx, input.workOrderId);
+      await audit(tx, actorId, input.workOrderId, "SIGNATURE_COLLECTED", {
+        signatureId: saved.id,
+        type: input.type,
+      });
+      return saved;
     });
+    if (previous?.objectKey && previous.objectKey !== key)
+      await storage.delete?.(previous.objectKey).catch(() => undefined);
     return signature;
-  });
+  } catch (error) {
+    await storage.delete?.(key).catch(() => undefined);
+    throw error;
+  }
 }
 
 async function audit(

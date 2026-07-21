@@ -130,6 +130,19 @@ label {
 .error {
   color: #a32626;
 }
+.success {
+  color: #267045;
+}
+.pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.pagination > :last-child {
+  justify-self: end;
+}
 .table {
   width: 100%;
   border-collapse: collapse;

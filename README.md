@@ -94,3 +94,15 @@ npm run build
 - Mudanças nas fotos tornam o PDF atual desatualizado; a próxima geração cria uma versão imutável com fotos, vínculos, avarias, assinaturas e identificação de integridade.
 
 No teste manual, abra uma OS e a aba **Vistoria e fotos**. Envie categorias diferentes, relacione checklist/serviço, filtre, abra o original, edite a descrição e gere duas versões do PDF. Depois finalize a OS e confirme a proteção das evidências. No celular, permita a câmera; fora de `localhost`, o navegador normalmente exige HTTPS.
+
+## Revisão de robustez — 20/07/2026
+
+- A edição de uma OS reconcilia seus itens em vez de recriá-los, preservando execução, observações e vínculos das fotos.
+- Valores de OS são calculados em centavos; datas financeiras são tratadas como datas civis, sem deslocamento de fuso.
+- Totais financeiros usam todos os lançamentos pagos. Lançamentos automáticos são controlados exclusivamente pela OS.
+- O upload aceita o lote anunciado, valida enums no servidor, limpa o formulário ao concluir e remove objetos novos quando a persistência falha.
+- A geração de PDF é serializada por OS para garantir versões únicas em requisições concorrentes.
+- Sessões são revalidadas contra o usuário ativo e a função atual; login possui limitação local de tentativas e comparação de senha com tempo uniforme.
+- Em produção, as credenciais `S3_ACCESS_KEY` e `S3_SECRET_KEY` são obrigatórias. `AUTH_SESSION_MAX_AGE_SECONDS` permite ajustar a duração da sessão, com padrão de 8 horas.
+
+Decisões conscientes: o rate limiting atual é por processo e deve migrar para Redis em múltiplas réplicas. Como o sistema interno não possui escopo por equipe/filial, usuários ativos autenticados compartilham acesso às mídias das OS; os objetos continuam privados e são entregues somente por rotas autenticadas.

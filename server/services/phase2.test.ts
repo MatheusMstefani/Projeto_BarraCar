@@ -34,6 +34,9 @@ const storage: PrivateStorage = {
     if (!value) throw new Error("Arquivo ausente");
     return value;
   },
+  async delete(key) {
+    objects.delete(key);
+  },
 };
 let userId = "",
   orderId = "",
@@ -138,6 +141,9 @@ describe("Fase 2", () => {
     await expect(validateImage(png, 1)).rejects.toThrow();
     const checklistItem = await db.workOrderChecklistItem.findFirstOrThrow({ where: { workOrderId: orderId } });
     const workOrderItem = await db.workOrderItem.findFirstOrThrow({ where: { workOrderId: orderId } });
+    const storedBeforeInvalidLink = objects.size;
+    await expect(addPhoto({ workOrderId: orderId, category: PhotoCategory.BEFORE_SERVICE, region: VehicleRegion.FRONT, workOrderItemId: "item-inexistente", originalName: "invalida.png", bytes: png }, userId, storage)).rejects.toThrow();
+    expect(objects.size).toBe(storedBeforeInvalidLink);
     const photo = await addPhoto(
       {
         workOrderId: orderId,
@@ -195,11 +201,17 @@ describe("Fase 2", () => {
     const first = await generateWorkOrderDocument(orderId, userId, storage);
     const bytes = await storage.get(first.objectKey);
     expect(new TextDecoder().decode(bytes.slice(0, 4))).toBe("%PDF");
-    const second = await generateWorkOrderDocument(orderId, userId, storage);
-    expect(second.version).toBe(first.version + 1);
+    const concurrent = await Promise.all([
+      generateWorkOrderDocument(orderId, userId, storage),
+      generateWorkOrderDocument(orderId, userId, storage),
+    ]);
+    expect(concurrent.map((document) => document.version).sort((a, b) => a - b)).toEqual([
+      first.version + 1,
+      first.version + 2,
+    ]);
     expect(
       await db.generatedDocument.count({ where: { workOrderId: orderId } }),
-    ).toBe(2);
+    ).toBe(3);
     expect(objects.has(first.objectKey)).toBe(true);
   });
   it("nega foto sem autenticação", async () => {

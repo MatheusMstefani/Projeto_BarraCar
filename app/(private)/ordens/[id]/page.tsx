@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatCurrency, formatDate } from "@/lib/domain";
-import { ensureWorkOrderChecklist } from "@/server/services/checklists";
 import { initializeChecklist, updateChecklist, generatePdf } from "./actions";
 import { PhotoUpload } from "@/components/photo-upload";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { SignaturePad } from "@/components/signature-pad";
+import { ActionForm } from "@/components/action-form";
 
 const tabs = [
   ["summary", "Resumo"],
@@ -26,7 +26,7 @@ export default async function WorkOrderDetails({
 }) {
   const { id } = await params;
   const section = (await searchParams).section ?? "summary";
-  let order = await db.workOrder.findUnique({
+  const order = await db.workOrder.findUnique({
     where: { id },
     include: {
       customer: true,
@@ -46,30 +46,6 @@ export default async function WorkOrderDetails({
     },
   });
   if (!order) notFound();
-  if (section === "checklist" && !order.checklistItems.length) {
-    try {
-      await ensureWorkOrderChecklist(id);
-      order = await db.workOrder.findUniqueOrThrow({
-        where: { id },
-        include: {
-          customer: true,
-          vehicle: true,
-          items: { include: { service: true, employee: true } },
-          checklistItems: {
-            include: { templateItem: true, completedBy: true },
-            orderBy: { templateItem: { displayOrder: "asc" } },
-          },
-          photos: {
-            where: { deletedAt: null },
-            include: { uploadedBy: true, checklistItem: { include: { templateItem: true } }, workOrderItem: { include: { service: true } } },
-            orderBy: { createdAt: "asc" },
-          },
-          signatures: true,
-          documents: { orderBy: { version: "desc" } },
-        },
-      });
-    } catch {}
-  }
   const completed = order.checklistItems.filter(
     (i) => i.status !== "NOT_CHECKED",
   ).length;
@@ -162,18 +138,18 @@ export default async function WorkOrderDetails({
             />
           </div>
           {!order.checklistItems.length && (
-            <form action={initializeChecklist} className="card">
+            <ActionForm action={initializeChecklist} className="card">
               <input type="hidden" name="workOrderId" value={id} />
               <p>
                 Nenhum template ativo encontrado ou checklist ainda não
                 inicializado.
               </p>
               <button>Carregar checklist</button>
-            </form>
+            </ActionForm>
           )}
           <div className="checklist">
             {order.checklistItems.map((item) => (
-              <form
+              <ActionForm
                 action={updateChecklist}
                 className="card form"
                 key={item.id}
@@ -196,7 +172,7 @@ export default async function WorkOrderDetails({
                   />
                 )}
                 <button>Salvar item</button>
-              </form>
+              </ActionForm>
             ))}
           </div>
         </>
@@ -228,7 +204,7 @@ export default async function WorkOrderDetails({
       )}
       {section === "documents" && (
         <>
-          <form action={generatePdf} className="card form">
+          <ActionForm action={generatePdf} className="card form">
             <input type="hidden" name="workOrderId" value={id} />
             <h2>Documento da Ordem</h2>
             <p>
@@ -238,7 +214,7 @@ export default async function WorkOrderDetails({
             <button>
               {order.documents.length ? "Gerar nova versão" : "Gerar PDF"}
             </button>
-          </form>
+          </ActionForm>
           <div className="card">
             {order.documents.map((document) => (
               <p key={document.id}>

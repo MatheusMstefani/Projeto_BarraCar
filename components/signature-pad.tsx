@@ -1,13 +1,30 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { collectSignature } from "@/app/(private)/ordens/[id]/actions";
+import { ActionMessage } from "@/components/action-message";
+import { INITIAL_ACTION_STATE } from "@/lib/action-state";
 
 export function SignaturePad({ workOrderId }: { workOrderId: string }) {
+  const form = useRef<HTMLFormElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const drawing = useRef(false);
   const [hasSignature, setHasSignature] = useState(false);
+  const [state, formAction, pending] = useActionState(
+    collectSignature,
+    INITIAL_ACTION_STATE,
+  );
+
+  useEffect(() => {
+    if (state.status !== "success") return;
+    const element = canvas.current;
+    element?.getContext("2d")?.clearRect(0, 0, element.width, element.height);
+    drawing.current = false;
+    setHasSignature(false);
+    if (imageInput.current) imageInput.current.value = "";
+    form.current?.reset();
+  }, [state]);
 
   function coordinates(event: React.PointerEvent<HTMLCanvasElement>) {
     const element = canvas.current;
@@ -71,7 +88,7 @@ export function SignaturePad({ workOrderId }: { workOrderId: string }) {
     if (imageInput.current) imageInput.current.value = canvas.current?.toDataURL("image/png") ?? "";
   }
 
-  return <form action={collectSignature} className="card form" onSubmit={prepare}>
+  return <form ref={form} action={formAction} className="card form" onSubmit={prepare}>
     <input type="hidden" name="workOrderId" value={workOrderId} />
     <input ref={imageInput} type="hidden" name="image" />
     <h3>Coletar assinatura</h3>
@@ -79,6 +96,7 @@ export function SignaturePad({ workOrderId }: { workOrderId: string }) {
     <label>Nome do assinante<input name="signerName" required /></label>
     <p className="muted">Clique e mantenha pressionado para assinar. Em celular, toque e arraste.</p>
     <canvas ref={canvas} width={700} height={220} className="signature" onPointerDown={start} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish} />
-    <div className="actions"><button type="button" onClick={clear}>Limpar</button><button type="submit" disabled={!hasSignature}>Confirmar assinatura</button></div>
+    <ActionMessage state={state} />
+    <div className="actions"><button type="button" onClick={clear}>Limpar</button><button type="submit" disabled={!hasSignature || pending}>{pending ? "Confirmando..." : "Confirmar assinatura"}</button></div>
   </form>;
 }

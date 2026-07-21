@@ -156,54 +156,72 @@ export async function generateWorkOrderDocument(
   actorId: string,
   storage: PrivateStorage = privateStorage,
 ) {
-  const latest = await db.generatedDocument.aggregate({ _max: { version: true }, where: { workOrderId, type: DocumentType.WORK_ORDER_PDF } });
-  const version = (latest._max.version ?? 0) + 1;
-  const order = await db.workOrder.findUniqueOrThrow({
-    where: { id: workOrderId },
-    include: {
-      customer: true,
-      vehicle: true,
-      items: { include: { service: true, employee: true } },
-      checklistItems: {
-        include: { templateItem: true },
-        orderBy: { templateItem: { displayOrder: "asc" } },
+  let storedKey: string | undefined;
+  try {
+    return await db.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${workOrderId}))`;
+        const latest = await tx.generatedDocument.aggregate({
+          _max: { version: true },
+          where: { workOrderId, type: DocumentType.WORK_ORDER_PDF },
+        });
+        const version = (latest._max.version ?? 0) + 1;
+        const order = await tx.workOrder.findUniqueOrThrow({
+          where: { id: workOrderId },
+          include: {
+            customer: true,
+            vehicle: true,
+            items: { include: { service: true, employee: true } },
+            checklistItems: {
+              include: { templateItem: true },
+              orderBy: { templateItem: { displayOrder: "asc" } },
+            },
+            photos: {
+              include: {
+                checklistItem: { include: { templateItem: true } },
+                workOrderItem: { include: { service: true } },
+              },
+            },
+            signatures: true,
+          },
+        });
+        const bytes = await buildWorkOrderPdf(order, storage, version);
+        const sha256 = createHash("sha256").update(bytes).digest("hex");
+        storedKey = `work-orders/${workOrderId}/documents/os-${order.number}-v${version}-${randomUUID()}.pdf`;
+        await storage.put(storedKey, bytes, "application/pdf");
+        await tx.generatedDocument.updateMany({
+          where: {
+            workOrderId,
+            type: DocumentType.WORK_ORDER_PDF,
+            status: DocumentStatus.CURRENT,
+          },
+          data: { status: DocumentStatus.OUTDATED },
+        });
+        const document = await tx.generatedDocument.create({
+          data: {
+            workOrderId,
+            version,
+            objectKey: storedKey,
+            size: bytes.length,
+            sha256,
+            generatedById: actorId,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            userId: actorId,
+            entity: "WorkOrder",
+            entityId: workOrderId,
+            action: version === 1 ? "PDF_GENERATED" : "PDF_REGENERATED",
+            changes: { documentId: document.id, version },
+          },
+        });
+        return document;
       },
-      photos: { include: { checklistItem: { include: { templateItem: true } }, workOrderItem: { include: { service: true } } } },
-      signatures: true,
-    },
-  });
-  const bytes = await buildWorkOrderPdf(order, storage, version);
-  const sha256 = createHash("sha256").update(bytes).digest("hex");
-  const key = `work-orders/${workOrderId}/documents/os-${order.number}-v${version}-${randomUUID()}.pdf`;
-  await storage.put(key, bytes, "application/pdf");
-  return db.$transaction(async (tx) => {
-    await tx.generatedDocument.updateMany({
-      where: {
-        workOrderId,
-        type: DocumentType.WORK_ORDER_PDF,
-        status: DocumentStatus.CURRENT,
-      },
-      data: { status: DocumentStatus.OUTDATED },
-    });
-    const document = await tx.generatedDocument.create({
-      data: {
-        workOrderId,
-        version,
-        objectKey: key,
-        size: bytes.length,
-        sha256,
-        generatedById: actorId,
-      },
-    });
-    await tx.auditLog.create({
-      data: {
-        userId: actorId,
-        entity: "WorkOrder",
-        entityId: workOrderId,
-        action: version === 1 ? "PDF_GENERATED" : "PDF_REGENERATED",
-        changes: { documentId: document.id, version },
-      },
-    });
-    return document;
-  });
+      { timeout: 30_000 },
+    );
+  } catch (error) {
+    if (storedKey) await storage.delete?.(storedKey).catch(() => undefined);
+    throw error;
+  }
 }

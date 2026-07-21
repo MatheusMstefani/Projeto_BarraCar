@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { deletePhoto, editPhoto } from "@/app/(private)/ordens/[id]/actions";
+import { ActionForm } from "@/components/action-form";
 
 export type GalleryPhoto = {
   id: string;
@@ -95,7 +96,7 @@ export function PhotoGallery({
               {photo.createdAt} · {photo.uploadedBy}
               {photo.checksum ? ` · ${photo.checksum.slice(0, 10)}` : ""}
             </small>
-            <form action={editPhoto} className="form">
+            <ActionForm action={editPhoto} className="form">
               <input type="hidden" name="workOrderId" value={workOrderId} />
               <input type="hidden" name="photoId" value={photo.id} />
               <label>
@@ -113,8 +114,8 @@ export function PhotoGallery({
                 />
               </label>
               <button>Salvar descrição</button>
-            </form>
-            <form action={deletePhoto} className="form">
+            </ActionForm>
+            <ActionForm action={deletePhoto} className="form">
               <input type="hidden" name="workOrderId" value={workOrderId} />
               <input type="hidden" name="photoId" value={photo.id} />
               <label>
@@ -122,7 +123,7 @@ export function PhotoGallery({
                 <input name="reason" />
               </label>
               <button>Excluir foto</button>
-            </form>
+            </ActionForm>
             <a
               className="button"
               href={`/api/media/photos/${photo.id}?download=1`}
