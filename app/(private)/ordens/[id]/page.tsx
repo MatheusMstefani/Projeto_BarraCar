@@ -190,7 +190,7 @@ export default async function WorkOrderDetails({
             {order.signatures.map((signature) => (
               <article className="photo-card" key={signature.id}>
                 <img
-                  src={`/api/media/signatures/${signature.id}`}
+                  src={`/api/media/signatures/${signature.id}?v=${signature.updatedAt.getTime()}`}
                   alt={`Assinatura de ${signature.signerName}`}
                 />
                 <strong>{signature.signerName}</strong>

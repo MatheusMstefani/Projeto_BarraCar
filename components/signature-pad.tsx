@@ -93,6 +93,7 @@ export function SignaturePad({ workOrderId }: { workOrderId: string }) {
     <input ref={imageInput} type="hidden" name="image" />
     <h3>Coletar assinatura</h3>
     <label>Tipo<select name="type"><option value="CUSTOMER_ENTRY">Cliente na entrada</option><option value="PROFESSIONAL">Profissional</option><option value="DELIVERY_RESPONSIBLE">Responsável pela entrega</option><option value="CUSTOMER_PICKUP">Cliente na retirada</option></select></label>
+    <p className="muted">Existe uma assinatura por tipo. Salvar novamente o mesmo tipo substitui a assinatura anterior.</p>
     <label>Nome do assinante<input name="signerName" required /></label>
     <p className="muted">Clique e mantenha pressionado para assinar. Em celular, toque e arraste.</p>
     <canvas ref={canvas} width={700} height={220} className="signature" onPointerDown={start} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish} />
