@@ -38,17 +38,13 @@ export function ShellChrome({
   const pathname = usePathname();
   const [drawer, setDrawer] = useState(false);
   const [query, setQuery] = useState("");
-  const [manualGroup, setManualGroup] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set(groups[0] ? [groups[0].key] : []),
+  );
 
-  // Ao trocar de página, volta a abrir o grupo do item ativo.
-  useEffect(() => {
-    setManualGroup(null);
-    setQuery("");
-  }, [pathname]);
-
+  // A rota ativa permanece destacada e seu grupo fica visível.
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
   const activeGroup = groups.find((group) => group.items.some((item) => isActive(item.href)));
-  const openKey = manualGroup ?? activeGroup?.key ?? groups[0]?.key;
   const allItems = groups.flatMap((group) => group.items);
   const current = isActive("/")
     ? "Dashboard"
@@ -56,6 +52,35 @@ export function ShellChrome({
   const filtered = query
     ? allItems.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()))
     : null;
+
+  useEffect(() => {
+    setQuery("");
+    if (!activeGroup) return;
+    setExpandedGroups((currentGroups) => {
+      if (currentGroups.has(activeGroup.key)) return currentGroups;
+      const nextGroups = new Set(currentGroups);
+      nextGroups.add(activeGroup.key);
+      return nextGroups;
+    });
+  }, [activeGroup, pathname]);
+
+  function toggleGroup(key: string) {
+    setExpandedGroups((currentGroups) => {
+      const nextGroups = new Set(currentGroups);
+      if (nextGroups.has(key)) nextGroups.delete(key);
+      else nextGroups.add(key);
+      return nextGroups;
+    });
+  }
+
+  function openGroup(key: string) {
+    setExpandedGroups((currentGroups) => {
+      if (currentGroups.has(key)) return currentGroups;
+      const nextGroups = new Set(currentGroups);
+      nextGroups.add(key);
+      return nextGroups;
+    });
+  }
 
   const itemClass = (active: boolean, indented: boolean) =>
     active
@@ -98,7 +123,9 @@ export function ShellChrome({
               key={group.key}
               type="button"
               title={group.label}
-              onClick={() => setManualGroup(group.key)}
+              aria-expanded={expandedGroups.has(group.key)}
+              aria-controls={`sidebar-group-${group.key}`}
+              onClick={() => openGroup(group.key)}
               className={`${chromeButton} ${activeGroup?.key === group.key ? "text-primary" : ""}`}
             >
               <Icon name={group.icon} filled={activeGroup?.key === group.key} />
@@ -167,13 +194,15 @@ export function ShellChrome({
                 </div>
               </Link>
               {groups.map((group) => {
-                const open = openKey === group.key;
+                const open = expandedGroups.has(group.key);
                 const badge = group.items.reduce((sum, item) => sum + (item.badge ?? 0), 0);
                 return (
                   <div key={group.key} className="pt-2">
                     <button
                       type="button"
-                      onClick={() => setManualGroup(open ? "" : group.key)}
+                      aria-expanded={open}
+                      aria-controls={`sidebar-group-${group.key}`}
+                      onClick={() => toggleGroup(group.key)}
                       className="w-full bg-transparent shadow-none flex items-center justify-between px-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant"
                     >
                       <span className="flex items-center space-x-3">
@@ -196,7 +225,7 @@ export function ShellChrome({
                       </span>
                     </button>
                     {open && (
-                      <div className="mt-1 space-y-1">
+                      <div id={`sidebar-group-${group.key}`} className="mt-1 space-y-1">
                         {group.items.map((item) => renderItem(item, true))}
                       </div>
                     )}
