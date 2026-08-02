@@ -122,7 +122,7 @@
   body {
     background: var(--background);
     color: var(--on-surface);
-    font-family: var(--font-manrope), "Manrope", ui-sans-serif, system-ui, sans-serif;
+    font-family: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, sans-serif;
     font-size: 14px;
     line-height: 20px;
   }
@@ -456,18 +456,6 @@
   .login form {
     width: min(420px, 100%);
   }
-  .brand-mark {
-    display: inline-grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 0.5rem;
-    background: var(--primary-container);
-    color: var(--on-primary-container);
-    font-weight: 800;
-    margin-right: 0.5rem;
-  }
-
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

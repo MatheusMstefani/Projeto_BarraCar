@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "@/app/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/components/ui/icon";
@@ -38,6 +39,8 @@ export function ShellChrome({
   const pathname = usePathname();
   const [drawer, setDrawer] = useState(false);
   const [query, setQuery] = useState("");
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeMenuRef = useRef<HTMLButtonElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
     () => new Set(groups[0] ? [groups[0].key] : []),
   );
@@ -64,20 +67,38 @@ export function ShellChrome({
     });
   }, [activeGroup, pathname]);
 
+  useEffect(() => {
+    if (!drawer) return;
+    closeMenuRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setDrawer(false);
+      window.requestAnimationFrame(() => menuTriggerRef.current?.focus());
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [drawer]);
+
+  useEffect(() => {
+    const desktopViewport = window.matchMedia("(min-width: 1024px)");
+    const closeDrawerOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) setDrawer(false);
+    };
+
+    desktopViewport.addEventListener("change", closeDrawerOnDesktop);
+    return () => desktopViewport.removeEventListener("change", closeDrawerOnDesktop);
+  }, []);
+
+  function closeDrawerAndRestoreFocus() {
+    setDrawer(false);
+    window.requestAnimationFrame(() => menuTriggerRef.current?.focus());
+  }
+
   function toggleGroup(key: string) {
     setExpandedGroups((currentGroups) => {
       const nextGroups = new Set(currentGroups);
       if (nextGroups.has(key)) nextGroups.delete(key);
       else nextGroups.add(key);
-      return nextGroups;
-    });
-  }
-
-  function openGroup(key: string) {
-    setExpandedGroups((currentGroups) => {
-      if (currentGroups.has(key)) return currentGroups;
-      const nextGroups = new Set(currentGroups);
-      nextGroups.add(key);
       return nextGroups;
     });
   }
@@ -92,6 +113,7 @@ export function ShellChrome({
       key={item.href}
       href={item.href}
       onClick={() => setDrawer(false)}
+      aria-current={isActive(item.href) ? "page" : undefined}
       className={itemClass(isActive(item.href), indented)}
     >
       <div className="flex items-center space-x-3">
@@ -108,63 +130,46 @@ export function ShellChrome({
 
   return (
     <div className="flex overflow-hidden h-screen bg-background text-on-surface">
-      {/* Trilho: logo + um ícone por grupo */}
-      <aside className="hidden lg:flex w-[64px] h-screen bg-surface-container border-r border-outline-variant flex-col items-center py-md space-y-lg z-50">
-        <Link
-          href="/"
-          className="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center"
-          aria-label="Dashboard"
-        >
-          <Icon name="local_car_wash" filled className="text-on-primary-container" />
-        </Link>
-        <div className="flex flex-col space-y-sm text-on-surface-variant">
-          {groups.map((group) => (
-            <button
-              key={group.key}
-              type="button"
-              title={group.label}
-              aria-expanded={expandedGroups.has(group.key)}
-              aria-controls={`sidebar-group-${group.key}`}
-              onClick={() => openGroup(group.key)}
-              className={`${chromeButton} ${activeGroup?.key === group.key ? "text-primary" : ""}`}
-            >
-              <Icon name={group.icon} filled={activeGroup?.key === group.key} />
-            </button>
-          ))}
-        </div>
-        <div className="mt-auto flex flex-col items-center space-y-sm text-on-surface-variant">
-          {isAdmin && (
-            <Link
-              href="/configuracoes"
-              title="Configurações"
-              className={`${chromeButton} inline-flex`}
-            >
-              <Icon name="settings" />
-            </Link>
-          )}
-          <form action={logoutAction}>
-            <button type="submit" title="Sair" aria-label="Sair" className={chromeButton}>
-              <Icon name="logout" />
-            </button>
-          </form>
-        </div>
-      </aside>
-
       {drawer && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setDrawer(false)}
+          onClick={closeDrawerAndRestoreFocus}
           aria-hidden="true"
         />
       )}
 
       {/* Sidebar de navegação */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[264px] transform transition-transform duration-300 lg:static lg:translate-x-0 ${drawer ? "translate-x-0" : "-translate-x-full"} h-screen bg-surface-container flex flex-col border-r border-outline-variant`}
+        id="primary-sidebar"
+        aria-label="Navegação principal"
+        className={`fixed inset-y-0 left-0 z-50 w-[264px] transform transition-transform duration-300 lg:static lg:visible lg:pointer-events-auto lg:translate-x-0 ${drawer ? "visible pointer-events-auto translate-x-0" : "invisible pointer-events-none -translate-x-full"} h-screen h-dvh bg-surface-container flex flex-col border-r border-outline-variant`}
       >
-        <div className="p-md py-lg">
-          <h1 className="text-display-lg font-black text-on-surface mb-xs">Barracar</h1>
-          <p className="text-body-sm text-on-surface-variant opacity-60">Console de Gestão</p>
+        <div className="p-md pb-sm pt-md text-center">
+          <div className="mb-xs flex justify-end lg:hidden">
+            <button
+              ref={closeMenuRef}
+              type="button"
+              onClick={closeDrawerAndRestoreFocus}
+              aria-label="Fechar menu"
+              className={chromeButton}
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+          <Link href="/" onClick={() => setDrawer(false)} className="inline-block">
+            <Image
+              src="/branding/barracar-logo.png"
+              alt="Logo da Barracar Estética Automotiva"
+              width={1378}
+              height={689}
+              priority
+              unoptimized
+              className="h-auto w-full max-w-[216px] object-contain"
+            />
+          </Link>
+          <p className="mt-sm text-body-sm text-on-surface-variant opacity-60">
+            Console de Gestão
+          </p>
         </div>
         <div className="px-md mb-md">
           <div className="relative flex items-center">
@@ -173,6 +178,7 @@ export function ShellChrome({
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              aria-label="Buscar seção"
               placeholder="Buscar seção..."
               className="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2 pl-10 pr-3 text-body-md"
             />
@@ -186,6 +192,7 @@ export function ShellChrome({
               <Link
                 href="/"
                 onClick={() => setDrawer(false)}
+                aria-current={isActive("/") ? "page" : undefined}
                 className={itemClass(isActive("/"), false)}
               >
                 <div className="flex items-center space-x-3">
@@ -248,7 +255,7 @@ export function ShellChrome({
                 {isAdmin ? "Administrador" : "Funcionário"}
               </p>
             </div>
-            <form action={logoutAction} className="lg:hidden">
+            <form action={logoutAction}>
               <button type="submit" title="Sair" aria-label="Sair" className={chromeButton}>
                 <Icon name="logout" />
               </button>
@@ -258,18 +265,24 @@ export function ShellChrome({
       </aside>
 
       {/* Conteúdo */}
-      <main className="flex-1 flex flex-col h-screen overflow-y-auto bg-background">
+      <main
+        inert={drawer ? true : undefined}
+        className="min-w-0 flex-1 flex flex-col h-screen h-dvh overflow-y-auto bg-background"
+      >
         <header className="flex justify-between items-center w-full px-lg py-md bg-background sticky top-0 z-30">
           <div className="flex items-center space-x-2">
             <button
+              ref={menuTriggerRef}
               type="button"
               onClick={() => setDrawer(true)}
               aria-label="Abrir menu"
+              aria-expanded={drawer}
+              aria-controls="primary-sidebar"
               className={`lg:hidden ${chromeButton}`}
             >
               <Icon name="menu" />
             </button>
-            <nav className="flex items-center text-on-surface-variant text-xs space-x-1">
+            <nav aria-label="Breadcrumb" className="flex items-center text-on-surface-variant text-xs space-x-1">
               <span>Início</span>
               <Icon name="chevron_right" size={14} />
               <span className="text-primary font-bold">{current}</span>

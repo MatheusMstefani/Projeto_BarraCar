@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { uploadPhotos, type PhotoUploadState } from "@/app/(private)/ordens/[id]/actions";
 
@@ -175,7 +176,13 @@ export function PhotoUpload({ workOrderId }: { workOrderId: string }) {
       <div className="preview-grid">
         {previews.map((src, index) => (
           <div key={src} className="photo-card">
-            <img src={src} alt={`Prévia ${index + 1}`} />
+            <Image
+              src={src}
+              alt={`Prévia ${index + 1}`}
+              width={800}
+              height={600}
+              unoptimized
+            />
             <button
               type="button"
               onClick={() =>

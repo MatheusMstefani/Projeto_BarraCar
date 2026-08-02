@@ -49,6 +49,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       icon: "payments",
       items: [
         { href: "/financeiro", label: "Financeiro", icon: "payments" },
+        { href: "/historico", label: "Histórico", icon: "history" },
         { href: "/configuracoes", label: "Configurações", icon: "settings" },
       ],
     },

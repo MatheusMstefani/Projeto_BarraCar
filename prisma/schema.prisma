@@ -219,6 +219,7 @@ model Customer {
   @@index([name])
   @@index([phone])
   @@index([taxId])
+  @@index([createdAt])
 }
 
 model Vehicle {
@@ -240,6 +241,7 @@ model Vehicle {
   updatedAt    DateTime      @updatedAt
 
   @@index([customerId])
+  @@index([createdAt])
 }
 
 model Service {
@@ -290,6 +292,7 @@ model WorkOrder {
   @@index([customerId])
   @@index([vehicleId])
   @@index([status, scheduledAt])
+  @@index([entryAt])
 }
 
 model ChecklistTemplate {
@@ -368,6 +371,7 @@ model InspectionPhoto {
   updatedAt       DateTime                @updatedAt
 
   @@index([workOrderId, category, deletedAt])
+  @@index([createdAt, deletedAt])
   @@index([checklistItemId])
   @@index([workOrderItemId])
   @@index([uploadedById])
@@ -390,6 +394,7 @@ model Signature {
 
   @@unique([workOrderId, type])
   @@index([collectedById])
+  @@index([createdAt])
 }
 
 model GeneratedDocument {
@@ -410,6 +415,7 @@ model GeneratedDocument {
   @@unique([workOrderId, type, version])
   @@index([workOrderId, status])
   @@index([generatedById])
+  @@index([createdAt])
 }
 
 model WorkOrderItem {

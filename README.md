@@ -4,7 +4,7 @@ Base operacional responsiva da Barracar Estética Automotiva, construída com Ne
 
 ## Requisitos e instalação
 
-- Node.js 22 LTS e npm 10+
+- Node.js 20.19+ (Node.js 22 LTS recomendado) e npm 10+
 - Docker com Compose
 
 ```bash
@@ -45,7 +45,7 @@ npm run build
 - **Ordem de Serviço:** adicione vários serviços, quantidades, preços e responsáveis diferentes; remova um item e confira contador/total. Salve, recarregue e confirme persistência. O serviço transacional também cobre edição sem duplicação.
 - **Agenda e pagamento:** uma OS agendada mantém um único agendamento mesmo após edição. Remover a data cancela o agendamento existente. Repetir “Marcar paga” mantém uma única entrada financeira.
 
-Na revisão de 19/07/2026, Prisma Validate, TypeScript, testes e build passaram. O ESLint permaneceu sem erros; os avisos de `<img>` referem-se a imagens servidas por rotas autenticadas e prévias locais `blob:`, para as quais o otimizador do Next não recebe a sessão do usuário.
+As fontes Manrope e Material Symbols são servidas localmente, sem depender do Google em tempo de execução. Imagens privadas e prévias locais usam `next/image` sem otimização para preservar cookies, URLs `blob:` e controle de acesso.
 
 ## Estrutura
 
@@ -56,9 +56,21 @@ Na revisão de 19/07/2026, Prisma Validate, TypeScript, testes e build passaram.
 - `prisma/`: modelo, migrations e seed
 - `docs/`: requisitos, arquitetura, decisões e roadmap
 
+## Identidade visual
+
+A logo oficial fica em `public/branding/barracar-logo.png` e é exibida sem conversão ou recorte no login, na navegação lateral, no menu mobile e nas Configurações. Novos PDFs de OS/vistoria e relatórios do Histórico incorporam o mesmo PNG com proporção preservada. Versões de PDF já armazenadas continuam imutáveis.
+
+## Histórico geral e relatórios
+
+Administradores podem abrir **Gestão > Histórico** em `/historico`. A consulta inicial mostra o mês atual e permite navegar para meses/anos anteriores, informar um intervalo personalizado ou consultar todo o período. Os filtros ficam na URL, por exemplo `/historico?mode=month&year=2026&month=7&tab=orders`, e são preservados ao abrir uma OS e voltar.
+
+As abas apresentam visão anual, Ordens, Financeiro, Serviços, Funcionários, Clientes e veículos, Agendamentos, Orçamentos e Documentos/fotos. O relatório respeita os filtros e pode ser baixado em PDF ou CSV escolhendo as seções desejadas. O módulo atual ainda não possui entidade operacional de orçamento; por isso a aba correspondente informa a limitação e não inventa indicadores.
+
+A visão anual cobre sempre janeiro a dezembro do ano escolhido. Cada linha mensal reutiliza as mesmas regras dos cards daquele mês e alimenta diretamente o gráfico, garantindo correspondência entre Ordens, serviços concluídos, entradas, saídas, saldo, clientes e veículos.
+
 ## Estado de validação
 
-Node.js, dependências e Docker estão disponíveis. As migrations inicial e da Fase 2 foram aplicadas sem reset; seed, typecheck, lint, testes e build foram executados com sucesso em 19/07/2026.
+Node.js, dependências e Docker estão disponíveis. As migrations são aplicadas sem reset; seed, typecheck, lint, testes e build devem ser executados antes de cada publicação.
 
 ## Fase 2 — checklist, fotos, assinaturas e PDF
 

@@ -1,1 +1,58 @@
-{"name":"barracar-gestao","private":true,"scripts":{"dev":"next dev","build":"next build","lint":"eslint .","typecheck":"tsc --noEmit","test":"vitest run","test:e2e":"playwright test","db:migrate":"prisma migrate dev","db:seed":"prisma db seed"},"dependencies":{"@aws-sdk/client-s3":"^3.1090.0","@aws-sdk/s3-request-presigner":"^3.1090.0","@prisma/client":"^6.1.0","@tailwindcss/postcss":"^4.3.3","bcryptjs":"^2.4.3","file-type":"^22.0.1","next":"^15.1.3","next-auth":"^5.0.0-beta.25","pdf-lib":"^1.17.1","react":"^19.0.0","react-dom":"^19.0.0","sharp":"^0.35.3","tailwindcss":"^4.3.3","zod":"^3.24.1"},"devDependencies":{"@eslint/eslintrc":"^3.2.0","@playwright/test":"^1.62.1","@types/bcryptjs":"^2.4.6","@types/node":"^22.10.2","@types/react":"^19.0.3","@types/react-dom":"^19.0.2","eslint":"^9.17.0","eslint-config-next":"^15.1.3","prisma":"^6.1.0","tsx":"^4.19.2","typescript":"^5.7.2","vitest":"^2.1.8"},"prisma":{"seed":"tsx prisma/seed.ts"}}
+{
+  "name": "barracar-gestao",
+  "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1090.0",
+    "@aws-sdk/s3-request-presigner": "^3.1090.0",
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@prisma/client": "^6.1.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "bcryptjs": "^2.4.3",
+    "file-type": "^22.0.1",
+    "material-symbols": "^0.45.10",
+    "next": "^15.5.22",
+    "next-auth": "^5.0.0-beta.32",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4.3.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@playwright/test": "^1.62.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.2",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.5.22",
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.20"
+    },
+    "sharp": "$sharp"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

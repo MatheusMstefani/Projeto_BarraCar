@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { deletePhoto, editPhoto } from "@/app/(private)/ordens/[id]/actions";
 import { ActionForm } from "@/components/action-form";
@@ -81,9 +82,12 @@ export function PhotoGallery({
               target="_blank"
               rel="noreferrer"
             >
-              <img
+              <Image
                 src={`/api/media/photos/${photo.id}?thumbnail=1`}
                 alt={photo.description ?? photo.originalName}
+                width={800}
+                height={600}
+                unoptimized
               />
             </a>
             <strong>

@@ -1,10 +1,11 @@
 import { DocumentStatus, DocumentType, Prisma } from "@prisma/client";
 import { createHash, randomUUID } from "node:crypto";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFPage } from "pdf-lib";
 import sharp from "sharp";
 import { db } from "@/lib/db";
 import { DomainError } from "@/lib/errors";
 import { privateStorage, type PrivateStorage } from "@/lib/storage";
+import { readBrandLogo } from "@/server/branding";
 
 type OrderForPdf = Prisma.WorkOrderGetPayload<{
   include: {
@@ -30,14 +31,25 @@ export async function buildWorkOrderPdf(
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const brandLogo = await pdf.embedPng(await readBrandLogo());
   const width = 595.28,
     height = 841.89,
     margin = 42;
+  const logoDimensions = brandLogo.scaleToFit(200, 100);
   let page = pdf.addPage([width, height]);
-  let y = height - margin;
+  const drawBrandHeader = (target: PDFPage) => {
+    target.drawImage(brandLogo, {
+      x: (width - logoDimensions.width) / 2,
+      y: height - margin - logoDimensions.height,
+      width: logoDimensions.width,
+      height: logoDimensions.height,
+    });
+    return height - margin - logoDimensions.height - 14;
+  };
+  let y = drawBrandHeader(page);
   const newPage = () => {
     page = pdf.addPage([width, height]);
-    y = height - margin;
+    y = drawBrandHeader(page);
   };
   const line = (
     text: string,

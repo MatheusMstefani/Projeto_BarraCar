@@ -17,7 +17,8 @@ const PAD_Y = 14;
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
 
 /** Caminho suavizado (quadráticas pelos pontos médios), como o traço do template. */
@@ -37,11 +38,14 @@ export function LineChart({ labels, series }: { labels: string[]; series: ChartS
   const container = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<number | null>(null);
 
-  const max = Math.max(1, ...series.flatMap((s) => s.values));
+  const values = series.flatMap((s) => s.values);
+  const min = Math.min(0, ...values);
+  const max = Math.max(1, ...values);
+  const range = Math.max(1, max - min);
   const stepX = labels.length > 1 ? W / (labels.length - 1) : W;
   const point = (index: number, value: number) => ({
     x: index * stepX,
-    y: H - PAD_Y - (value / max) * (H - PAD_Y * 2),
+    y: H - PAD_Y - ((value - min) / range) * (H - PAD_Y * 2),
   });
 
   function onMove(event: React.MouseEvent<HTMLDivElement>) {

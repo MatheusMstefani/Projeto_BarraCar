@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatCurrency, formatDate } from "@/lib/domain";
@@ -22,10 +23,17 @@ export default async function WorkOrderDetails({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ section?: string }>;
+  searchParams: Promise<{ section?: string; returnTo?: string }>;
 }) {
   const { id } = await params;
-  const section = (await searchParams).section ?? "summary";
+  const query = await searchParams;
+  const section = query.section ?? "summary";
+  const returnTo = query.returnTo?.startsWith("/historico?")
+    ? query.returnTo
+    : "/ordens";
+  const returnParameter = query.returnTo
+    ? `&returnTo=${encodeURIComponent(returnTo)}`
+    : "";
   const order = await db.workOrder.findUnique({
     where: { id },
     include: {
@@ -66,7 +74,7 @@ export default async function WorkOrderDetails({
             {order.customer.name} · {order.vehicle.plate}
           </p>
         </div>
-        <Link href="/ordens" className="button">
+        <Link href={returnTo} className="button">
           Voltar
         </Link>
       </div>
@@ -74,7 +82,7 @@ export default async function WorkOrderDetails({
         {tabs.map(([key, label]) => (
           <Link
             className={section === key ? "active" : ""}
-            href={`/ordens/${id}?section=${key}`}
+            href={`/ordens/${id}?section=${key}${returnParameter}`}
             key={key}
           >
             {label}
@@ -189,9 +197,12 @@ export default async function WorkOrderDetails({
           <div className="gallery">
             {order.signatures.map((signature) => (
               <article className="photo-card" key={signature.id}>
-                <img
+                <Image
                   src={`/api/media/signatures/${signature.id}?v=${signature.updatedAt.getTime()}`}
                   alt={`Assinatura de ${signature.signerName}`}
+                  width={800}
+                  height={300}
+                  unoptimized
                 />
                 <strong>{signature.signerName}</strong>
                 <small>

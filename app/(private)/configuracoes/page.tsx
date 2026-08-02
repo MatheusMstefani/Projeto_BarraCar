@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createChecklistItem, updateChecklistItem } from "./actions";
 import { ActionForm } from "@/components/action-form";
 import { requireAdminPage } from "@/lib/authorization";
@@ -16,8 +17,17 @@ export default async function Settings() {
   return (
     <>
       <h1>Configurações</h1>
-      <div className="card">
-        <h2>{value?.name}</h2>
+      <div className="card form">
+        <h2>Identidade visual</h2>
+        <Image
+          src="/branding/barracar-logo.png"
+          alt="Logo da Barracar Estética Automotiva"
+          width={1378}
+          height={689}
+          unoptimized
+          className="h-auto w-full max-w-[420px] object-contain"
+        />
+        <p><strong>{value?.name}</strong></p>
         <p className="muted">Timezone: {value?.timezone}</p>
       </div>
       <h2>Itens do checklist</h2>

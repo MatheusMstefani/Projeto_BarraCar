@@ -15,6 +15,17 @@ test.describe.serial("Barracar Gestão", () => {
   test("protege rotas, rejeita credenciais inválidas e mantém a sessão", async ({ page }) => {
     await page.goto("/financeiro");
     await expect(page).toHaveURL(/\/login/);
+    const loginLogo = page.getByRole("img", {
+      name: "Logo da Barracar Estética Automotiva",
+    });
+    await expect(loginLogo).toBeVisible();
+    await expect(loginLogo).toHaveAttribute("src", "/branding/barracar-logo.png");
+    expect(
+      await loginLogo.evaluate((image: HTMLImageElement) => ({
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      })),
+    ).toEqual({ width: 1378, height: 689 });
 
     const unauthenticatedPhoto = await page.request.get(
       "/api/media/photos/inexistente",
@@ -66,6 +77,19 @@ test.describe.serial("Barracar Gestão", () => {
     ] as const) {
       await page.goto(path);
       await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
+    }
+    const logos = page.getByRole("img", {
+      name: "Logo da Barracar Estética Automotiva",
+    });
+    await expect(logos).toHaveCount(2);
+    for (const logo of await logos.all()) {
+      expect(
+        await logo.evaluate((image: HTMLImageElement) => ({
+          complete: image.complete,
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+        })),
+      ).toEqual({ complete: true, width: 1378, height: 689 });
     }
     expect(errors).toEqual([]);
   });

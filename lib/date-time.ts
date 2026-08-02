@@ -68,6 +68,21 @@ function zonedMidnight(parts: CivilDateParts, timeZone: string) {
   return new Date(instant);
 }
 
+export function getZonedDateStart(
+  value: string,
+  timeZone = getAppTimeZone(),
+) {
+  const civil = parseCivilDate(value);
+  return zonedMidnight(
+    {
+      year: civil.getUTCFullYear(),
+      month: civil.getUTCMonth() + 1,
+      day: civil.getUTCDate(),
+    },
+    timeZone,
+  );
+}
+
 export function getAppTimeZone() {
   return process.env.APP_TIMEZONE?.trim() || DEFAULT_TIME_ZONE;
 }
