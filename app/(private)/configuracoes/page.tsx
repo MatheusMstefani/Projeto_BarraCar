@@ -1,5 +1,4 @@
 import Image from "next/image";
-import barracarLogo from "@/app/BarraCar-Logo.png";
 import { createChecklistItem, updateChecklistItem } from "./actions";
 import { ActionForm } from "@/components/action-form";
 import { requireAdminPage } from "@/lib/authorization";
@@ -22,8 +21,10 @@ export default async function Settings() {
       <div className="card form">
         <h2>Identidade visual</h2>
         <Image
-          src={barracarLogo}
+          src="/branding/barracar-logo.png"
           alt="Logo da Barracar Estética Automotiva"
+          width={1536}
+          height={1024}
           unoptimized
           className="brand-logo brand-logo-settings h-auto w-full max-w-[420px] object-contain"
         />
