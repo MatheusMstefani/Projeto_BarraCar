@@ -1,5 +1,6 @@
 import { DomainError } from "@/lib/errors";
 const DEFAULT_TIME_ZONE = "America/Sao_Paulo";
+const DEFAULT_LOCATION_LABEL = "Barra de São Francisco/ES";
 
 type CivilDateParts = {
   year: number;
@@ -85,6 +86,11 @@ export function getZonedDateStart(
 
 export function getAppTimeZone() {
   return process.env.APP_TIMEZONE?.trim() || DEFAULT_TIME_ZONE;
+}
+
+/** Friendly business location without inventing a non-existent IANA identifier. */
+export function getAppTimeZoneDisplayName(timeZone = getAppTimeZone()) {
+  return timeZone === DEFAULT_TIME_ZONE ? DEFAULT_LOCATION_LABEL : timeZone;
 }
 
 /** Stores a calendar-only value at UTC midnight, independent of server TZ. */

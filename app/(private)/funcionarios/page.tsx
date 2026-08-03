@@ -4,7 +4,7 @@ import { requireAdminPage } from "@/lib/authorization";
 import { db } from "@/lib/db";
 
 export default async function Employees() {
-  await requireAdminPage();
+  await requireAdminPage("employees:read");
   const items = await db.employee.findMany({ orderBy: { name: "asc" } });
 
   return (

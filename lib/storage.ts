@@ -1,4 +1,10 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadBucketCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 
 interface StorageEnvironment {
   NODE_ENV?: string;
@@ -67,6 +73,7 @@ export interface PrivateStorage {
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
   get(key: string): Promise<Uint8Array>;
   delete?(key: string): Promise<void>;
+  healthCheck?(): Promise<void>;
 }
 
 export const privateStorage: PrivateStorage = {
@@ -85,5 +92,9 @@ export const privateStorage: PrivateStorage = {
   async delete(key) {
     const { client, bucket } = storage();
     await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+  },
+  async healthCheck() {
+    const { client, bucket } = storage();
+    await client.send(new HeadBucketCommand({ Bucket: bucket }));
   },
 };

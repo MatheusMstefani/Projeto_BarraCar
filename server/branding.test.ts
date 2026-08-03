@@ -9,8 +9,13 @@ describe("identidade visual oficial", () => {
     const metadata = await sharp(bytes).metadata();
 
     expect(createHash("sha256").update(bytes).digest("hex")).toBe(
-      "8fd46cdb83e93e2abfd120dfa0fe544bf14542ac21442c4cff476c6931a4ba07",
+      "9cfa97d220f7c889c1a2090cb5737e1d831737ce76671c89e4b6137a258a2afb",
     );
-    expect(metadata).toMatchObject({ format: "png", width: 1378, height: 689 });
+    expect(metadata).toMatchObject({
+      format: "png",
+      width: 1536,
+      height: 1024,
+      hasAlpha: true,
+    });
   });
 });

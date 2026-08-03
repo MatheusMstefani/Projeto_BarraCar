@@ -17,7 +17,7 @@ describe("exportação autenticada do histórico", () => {
   it("bloqueia acesso sem administrador", async () => {
     mocks.auth.mockResolvedValueOnce(null);
     const response = await GET(new NextRequest("http://localhost/api/history/export?format=pdf"));
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
 
     mocks.auth.mockResolvedValueOnce({
       user: { id: "funcionario", name: "Funcionário", role: "EMPLOYEE" },

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { loginAction } from "@/app/actions";
+import barracarLogo from "@/app/BarraCar-Logo.png";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
   const params = await searchParams;
@@ -8,13 +9,11 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       <form action={loginAction} className="card form">
         <div className="grid justify-items-center gap-3 text-center">
           <Image
-            src="/branding/barracar-logo.png"
+            src={barracarLogo}
             alt="Logo da Barracar Estética Automotiva"
-            width={1378}
-            height={689}
             priority
             unoptimized
-            className="h-auto w-full max-w-[320px] object-contain"
+            className="brand-logo brand-logo-login h-auto w-full max-w-[320px] object-contain"
           />
           <div>
             <h1>Barracar Gestão</h1>

@@ -12,6 +12,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 import {
   formatCivilDate,
   getAppTimeZone,
+  getAppTimeZoneDisplayName,
   getCivilDateInputValue,
 } from "@/lib/date-time";
 import { formatCurrency, formatDate } from "@/lib/domain";
@@ -21,7 +22,10 @@ import {
   resolveHistoryPeriod,
 } from "@/lib/history-period";
 import { requireAdminPage } from "@/lib/authorization";
-import { getHistoryData, type HistoryFilters } from "@/server/services/history";
+import {
+  getHistoryData,
+  type HistoryFilters,
+} from "@/server/modules/history/public";
 
 type Search = Record<string, string | string[] | undefined>;
 const tabs = [
@@ -54,7 +58,7 @@ function SelectOptions({ values }: { values: readonly string[] }) {
 }
 
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<Search> }) {
-  await requireAdminPage();
+  await requireAdminPage("history:read");
   const raw = await searchParams;
   const values = new URLSearchParams();
   for (const [key, value] of Object.entries(raw)) {
@@ -101,8 +105,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   const totalPages = Math.max(1, Math.ceil(pageTotal / pageSize));
 
   return (
-    <>
-      <div className="top">
+    <div className="page-layout history-page">
+      <div className="top history-heading">
         <div>
           <h1>Histórico Geral</h1>
           <p className="muted">Consulta somente leitura · {period.label}</p>
@@ -113,9 +117,9 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         </div>
       </div>
 
-      <details className="card form" open>
+      <details className="card form history-filters" open>
         <summary><strong>Filtros do histórico</strong></summary>
-        <div className="actions">
+        <div className="actions history-quick-actions">
           <Link className="button" href="/historico">Mês atual</Link>
           <Link className="button" href={queryWith(values, { mode: "month", year: String(previous.year), month: String(previous.month), page: null })}>Mês anterior</Link>
           <Link className="button" href={queryWith(values, { mode: "last3", year: String(currentYear), month: String(currentMonth), page: null })}>Últimos 3 meses</Link>
@@ -124,9 +128,9 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           <Link className="button" href={queryWith(values, { mode: "previousYear", year: String(currentYear), page: null })}>Ano anterior</Link>
           <Link className="button" href={queryWith(values, { mode: "all", page: null })}>Todo o período</Link>
         </div>
-        <form key={values.toString() || "default"} method="get" className="form">
+        <form key={values.toString() || "default"} method="get" className="form history-filter-form">
           <input type="hidden" name="tab" value={selectedTab} />
-          <div className="grid">
+          <div className="grid history-filter-grid">
             <label>Período<select name="mode" defaultValue={period.mode}><option value="month">Mês e ano</option><option value="custom">Personalizado</option><option value="last3">Últimos 3 meses</option><option value="last6">Últimos 6 meses</option><option value="year">Ano</option><option value="previousYear">Ano anterior</option><option value="all">Todo o período</option></select></label>
             <label>Mês<select name="month" defaultValue={String(period.month)}>{monthNames.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}</select></label>
             <label>Ano<input name="year" type="number" min="1900" max="2200" defaultValue={historyPeriodFormYear(period)} /></label>
@@ -148,9 +152,9 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         </form>
       </details>
 
-      <p className="muted">Regras: Ordens por entrada; financeiro por competência; agendamentos por data agendada; cadastros, fotos, assinaturas e PDFs por criação. Intervalos respeitam America/Sao_Paulo e usam limite final exclusivo.</p>
+      <p className="muted history-rules">Regras: Ordens por entrada; financeiro por competência; agendamentos por data agendada; cadastros, fotos, assinaturas e PDFs por criação. Intervalos respeitam {getAppTimeZoneDisplayName()} ({getAppTimeZone()}) e usam limite final exclusivo.</p>
 
-      <div className="grid">
+      <div className="grid history-summary">
         <MetricCard label="Ordens" value={String(data.summary.orders)} />
         <MetricCard label="Concluídas" value={String(data.summary.completedOrders)} />
         <MetricCard label="Canceladas" value={String(data.summary.canceledOrders)} />
@@ -171,7 +175,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         <MetricCard label="Orçamentos convertidos" value={String(data.summary.convertedQuotes)} />
       </div>
 
-      <nav className="tabs" aria-label="Seções do histórico">
+      <nav className="tabs history-tabs" aria-label="Seções do histórico">
         {tabs.map(([key, label]) => <Link key={key} className={selectedTab === key ? "active" : ""} href={queryWith(values, { tab: key, page: null })}>{label}</Link>)}
       </nav>
 
@@ -218,12 +222,12 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
       {(selectedTab === "orders" || selectedTab === "finance") && totalPages > 1 && <nav className="pagination" aria-label="Paginação"><span>{page > 1 && <Link className="button" href={queryWith(values, { page: String(page - 1) })}>Anterior</Link>}</span><span>Página {page} de {totalPages}</span><span>{page < totalPages && <Link className="button" href={queryWith(values, { page: String(page + 1) })}>Próxima</Link>}</span></nav>}
 
-      <form action="/api/history/export" method="get" target="_blank" className="card form">
+      <form action="/api/history/export" method="get" target="_blank" className="card form history-export">
         <h2>Exportar relatório</h2>
         {["mode", "year", "month", "from", "to", "q", "status", "payment", "employeeId", "serviceId", "category", "paymentMethod", "financialType", "financialStatus", "origin"].map((key) => values.get(key) ? <input key={key} type="hidden" name={key} value={values.get(key)!} /> : null)}
         <div className="actions"><label><input type="checkbox" name="include" value="summary" defaultChecked /> Resumo</label><label><input type="checkbox" name="include" value="orders" defaultChecked /> Ordens</label><label><input type="checkbox" name="include" value="finance" defaultChecked /> Financeiro</label><label><input type="checkbox" name="include" value="services" defaultChecked /> Serviços</label><label><input type="checkbox" name="include" value="employees" defaultChecked /> Funcionários</label><label><input type="checkbox" name="include" value="customers" defaultChecked /> Clientes e veículos</label></div>
         <div className="actions"><button name="format" value="pdf">Exportar PDF</button><button name="format" value="csv">Exportar CSV</button></div>
       </form>
-    </>
+    </div>
   );
 }

@@ -19,7 +19,7 @@ test("login e navegação mobile não extrapolam a viewport", async ({ page }) =
   await expect(logo).toBeVisible();
   expect(
     await logo.evaluate((image: HTMLImageElement) => image.naturalWidth / image.naturalHeight),
-  ).toBeCloseTo(1378 / 689, 5);
+  ).toBeCloseTo(1536 / 1024, 5);
   await expect(page.getByRole("button", { name: "Fechar menu" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Abrir menu" })).toHaveAttribute("aria-expanded", "false");

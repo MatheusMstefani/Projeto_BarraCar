@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "@/app/actions";
+import barracarLogo from "@/app/BarraCar-Logo.png";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/components/ui/icon";
 
@@ -158,13 +159,11 @@ export function ShellChrome({
           </div>
           <Link href="/" onClick={() => setDrawer(false)} className="inline-block">
             <Image
-              src="/branding/barracar-logo.png"
+              src={barracarLogo}
               alt="Logo da Barracar Estética Automotiva"
-              width={1378}
-              height={689}
               priority
               unoptimized
-              className="h-auto w-full max-w-[216px] object-contain"
+              className="brand-logo brand-logo-sidebar h-auto w-full max-w-[216px] object-contain"
             />
           </Link>
           <p className="mt-sm text-body-sm text-on-surface-variant opacity-60">

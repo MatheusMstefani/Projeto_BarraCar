@@ -1,11 +1,13 @@
 import Image from "next/image";
+import barracarLogo from "@/app/BarraCar-Logo.png";
 import { createChecklistItem, updateChecklistItem } from "./actions";
 import { ActionForm } from "@/components/action-form";
 import { requireAdminPage } from "@/lib/authorization";
 import { db } from "@/lib/db";
+import { getAppTimeZoneDisplayName } from "@/lib/date-time";
 
 export default async function Settings() {
-  await requireAdminPage();
+  await requireAdminPage("settings:manage");
   const [value, template] = await Promise.all([
     db.companySettings.findUnique({ where: { id: "default" } }),
     db.checklistTemplate.findFirst({
@@ -20,15 +22,16 @@ export default async function Settings() {
       <div className="card form">
         <h2>Identidade visual</h2>
         <Image
-          src="/branding/barracar-logo.png"
+          src={barracarLogo}
           alt="Logo da Barracar Estética Automotiva"
-          width={1378}
-          height={689}
           unoptimized
-          className="h-auto w-full max-w-[420px] object-contain"
+          className="brand-logo brand-logo-settings h-auto w-full max-w-[420px] object-contain"
         />
         <p><strong>{value?.name}</strong></p>
-        <p className="muted">Timezone: {value?.timezone}</p>
+        <div className="timezone-display">
+          <p className="muted">Timezone: {getAppTimeZoneDisplayName(value?.timezone)}</p>
+          <small className="muted">Fuso técnico: {value?.timezone ?? "America/Sao_Paulo"}</small>
+        </div>
       </div>
       <h2>Itens do checklist</h2>
       {template && (

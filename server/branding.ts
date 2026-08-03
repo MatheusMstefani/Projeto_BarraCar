@@ -3,9 +3,8 @@ import path from "node:path";
 
 const brandLogoFile = path.join(
   process.cwd(),
-  "public",
-  "branding",
-  "barracar-logo.png",
+  "app",
+  "BarraCar-Logo.png",
 );
 
 export function readBrandLogo() {

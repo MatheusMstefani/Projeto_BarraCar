@@ -9,7 +9,7 @@ import { requireAdminPage } from "@/lib/authorization";
 import { createFinancialEntry, updateFinancialStatus } from "./actions";
 
 export default async function Finance() {
-  await requireAdminPage();
+  await requireAdminPage("finance:read");
   const [items, totals] = await Promise.all([
     db.financialEntry.findMany({
       include: { workOrder: true },
@@ -28,9 +28,9 @@ export default async function Finance() {
   const expense = totalFor(EntryType.EXPENSE);
 
   return (
-    <>
+    <div className="page-layout finance-page">
       <h1>Financeiro</h1>
-      <div className="grid">
+      <div className="grid finance-summary">
         <MetricCard label="Entradas pagas" value={formatCurrency(income)} badge={{ label: "Entradas", tone: "info" }} />
         <MetricCard label="Saídas pagas" value={formatCurrency(expense)} />
         <MetricCard
@@ -40,9 +40,9 @@ export default async function Finance() {
         />
       </div>
 
-      <ActionForm action={createFinancialEntry} className="card form" resetOnSuccess>
+      <ActionForm action={createFinancialEntry} className="card form finance-entry-form" resetOnSuccess>
         <h2>Novo lançamento</h2>
-        <div className="grid">
+        <div className="grid finance-form-grid">
           <label>
             Descrição
             <input name="description" required />
@@ -163,6 +163,6 @@ export default async function Finance() {
       {!items.length && (
         <div className="card empty">Nenhum lançamento registrado.</div>
       )}
-    </>
+    </div>
   );
 }

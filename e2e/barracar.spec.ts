@@ -19,13 +19,16 @@ test.describe.serial("Barracar Gestão", () => {
       name: "Logo da Barracar Estética Automotiva",
     });
     await expect(loginLogo).toBeVisible();
-    await expect(loginLogo).toHaveAttribute("src", "/branding/barracar-logo.png");
+    await expect(loginLogo).toHaveAttribute(
+      "src",
+      /^\/_next\/static\/media\/BarraCar-Logo\..+\.png$/,
+    );
     expect(
       await loginLogo.evaluate((image: HTMLImageElement) => ({
         width: image.naturalWidth,
         height: image.naturalHeight,
       })),
-    ).toEqual({ width: 1378, height: 689 });
+    ).toEqual({ width: 1536, height: 1024 });
 
     const unauthenticatedPhoto = await page.request.get(
       "/api/media/photos/inexistente",
@@ -89,7 +92,7 @@ test.describe.serial("Barracar Gestão", () => {
           width: image.naturalWidth,
           height: image.naturalHeight,
         })),
-      ).toEqual({ complete: true, width: 1378, height: 689 });
+      ).toEqual({ complete: true, width: 1536, height: 1024 });
     }
     expect(errors).toEqual([]);
   });

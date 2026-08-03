@@ -1,22 +1,25 @@
 import { PDFDocument, StandardFonts, rgb, type PDFPage } from "pdf-lib";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { csvCell } from "@/lib/csv";
 import { formatCivilDate, getAppTimeZone } from "@/lib/date-time";
 import { formatCurrency, formatDate } from "@/lib/domain";
 import { resolveHistoryPeriod } from "@/lib/history-period";
 import { db } from "@/lib/db";
 import { readBrandLogo } from "@/server/branding";
-import { getHistoryData } from "@/server/services/history";
+import { getHistoryData } from "@/server/modules/history/public";
+import { requireCapability } from "@/server/platform/auth/actor";
+import { problemResponse } from "@/server/platform/errors/problem-details";
+import { logEvent } from "@/server/platform/observability/logger";
+import { requestIdFromHeaders } from "@/server/platform/observability/request-context";
 
 const pdfText = (value: unknown) =>
   String(value ?? "").replace(/[^\x20-\x7E\u00A0-\u00FF]/g, "");
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") {
-    return new NextResponse("Não autorizado", { status: 403 });
-  }
+  const requestId = requestIdFromHeaders(request.headers);
+  const startedAt = Date.now();
+  try {
+  const actor = await requireCapability("history:export");
   const query = request.nextUrl.searchParams;
   const timeZone = getAppTimeZone();
   const period = resolveHistoryPeriod({
@@ -81,11 +84,21 @@ export async function GET(request: NextRequest) {
       for (const item of data.vehicleRanking) rows.push(["Veículos", item.label, String(item.orders), String(item.value)]);
     }
     const csv = `\uFEFF${rows.map((row) => row.map(csvCell).join(";")).join("\r\n")}`;
+    logEvent({
+      event: "history_export_completed",
+      module: "history",
+      route: "/api/history/export",
+      requestId,
+      durationMs: Date.now() - startedAt,
+      result: "csv",
+      userId: actor.id,
+    });
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}.csv"`,
         "Cache-Control": "private, no-store",
+        "X-Request-Id": requestId,
       },
     });
   }
@@ -127,7 +140,7 @@ export async function GET(request: NextRequest) {
   };
   addLine(`${companyName} - Relatório Histórico`, { size: 16, strong: true });
   addLine(`Período: ${period.label}`, { size: 11, strong: true });
-  addLine(`Gerado em: ${formatDate(new Date())} por ${session.user.name}`);
+  addLine(`Gerado em: ${formatDate(new Date())} por ${actor.name}`);
   y -= 8;
   if (include.has("summary")) {
     addLine("Resumo do período", { size: 12, strong: true });
@@ -185,12 +198,35 @@ export async function GET(request: NextRequest) {
   const pages = pdf.getPages();
   pages.forEach((item, index) => item.drawText(`Página ${index + 1} de ${pages.length}`, { x: 470, y: 20, size: 8, font: regular }));
   const bytes = await pdf.save();
+  logEvent({
+    event: "history_export_completed",
+    module: "history",
+    route: "/api/history/export",
+    requestId,
+    durationMs: Date.now() - startedAt,
+    result: "pdf",
+    userId: actor.id,
+  });
   return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}.pdf"`,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
+      "X-Request-Id": requestId,
     },
   });
+  } catch (error) {
+    logEvent({
+      level: "error",
+      event: "history_export_failed",
+      module: "history",
+      route: "/api/history/export",
+      requestId,
+      durationMs: Date.now() - startedAt,
+      result: "error",
+      error,
+    });
+    return problemResponse(error, requestId);
+  }
 }
