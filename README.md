@@ -4,7 +4,7 @@ Base operacional responsiva da Barracar Estética Automotiva, construída com Ne
 
 ## Requisitos e instalação
 
-- Node.js 20.19+ (Node.js 22 LTS recomendado) e npm 10+
+- Node.js 22+ e npm 10+
 - Docker com Compose
 
 ```bash
@@ -18,16 +18,21 @@ npm run dev
 
 Acesse `http://localhost:3000`. O MinIO fica em `http://localhost:9001`.
 
-## Credenciais exclusivamente locais
+## Autenticação
 
-- Login: `admin` ou `admin@barracar.local`
-- Senha: `Barracar@123`
+O login usa Supabase Auth com e-mail e senha. Crie o usuário manualmente no painel do
+Supabase. Para acessar também os módulos de negócio, use o mesmo e-mail de um `User`
+ativo no banco Barracar; o seed local prepara `admin@barracar.local` para esse vínculo.
 
-Troque a senha e o `AUTH_SECRET` fora do ambiente local. Nenhuma credencial de produção está versionada.
+Não há cadastro público e nenhuma credencial de produção é versionada.
 
 ## Ambiente e banco
 
-Copie `.env.example`. `DATABASE_URL` conecta o Prisma; `AUTH_SECRET` assina sessões; `S3_*` prepara o armazenamento privado; `APP_TIMEZONE` começa em `America/Sao_Paulo`. O seed idempotente cria o administrador, configurações e os 42 serviços iniciais.
+Copie `.env.example`. `DATABASE_URL` conecta o Prisma;
+`NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` configuram somente
+o Supabase Auth; `S3_*` prepara o armazenamento privado; `APP_TIMEZONE` começa em
+`America/Sao_Paulo`. O seed idempotente cria o perfil de negócio do administrador,
+configurações e os 42 serviços iniciais.
 
 ```bash
 npx prisma studio
@@ -114,7 +119,7 @@ No teste manual, abra uma OS e a aba **Vistoria e fotos**. Envie categorias dife
 - Totais financeiros usam todos os lançamentos pagos. Lançamentos automáticos são controlados exclusivamente pela OS.
 - O upload aceita o lote anunciado, valida enums no servidor, limpa o formulário ao concluir e remove objetos novos quando a persistência falha.
 - A geração de PDF é serializada por OS para garantir versões únicas em requisições concorrentes.
-- Sessões são revalidadas contra o usuário ativo e a função atual; login possui limitação local de tentativas e comparação de senha com tempo uniforme.
-- Em produção, as credenciais `S3_ACCESS_KEY` e `S3_SECRET_KEY` são obrigatórias. `AUTH_SESSION_MAX_AGE_SECONDS` permite ajustar a duração da sessão, com padrão de 8 horas.
+- A identidade é validada pelo Supabase Auth; a autorização dos módulos continua revalidada contra o usuário local ativo e sua função atual.
+- Em produção, as credenciais `S3_ACCESS_KEY` e `S3_SECRET_KEY` continuam obrigatórias para as funcionalidades de mídia.
 
-Decisões conscientes: o rate limiting atual é por processo e deve migrar para Redis em múltiplas réplicas. Como o sistema interno não possui escopo por equipe/filial, usuários ativos autenticados compartilham acesso às mídias das OS; os objetos continuam privados e são entregues somente por rotas autenticadas.
+Como o sistema interno não possui escopo por equipe/filial, usuários ativos autenticados compartilham acesso às mídias das OS; os objetos continuam privados e são entregues somente por rotas autenticadas.

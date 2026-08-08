@@ -2,7 +2,7 @@
   "name": "barracar-gestao",
   "private": true,
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "next dev",
@@ -19,12 +19,13 @@
     "@aws-sdk/s3-request-presigner": "^3.1090.0",
     "@fontsource-variable/manrope": "^5.3.0",
     "@prisma/client": "^6.1.0",
+    "@supabase/ssr": "0.12.4",
+    "@supabase/supabase-js": "2.112.2",
     "@tailwindcss/postcss": "^4.3.3",
     "bcryptjs": "^2.4.3",
     "file-type": "^22.0.1",
     "material-symbols": "^0.45.10",
     "next": "^15.5.22",
-    "next-auth": "^5.0.0-beta.32",
     "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -48,7 +49,7 @@
   },
   "overrides": {
     "next": {
-      "postcss": "8.5.20"
+      "postcss": "8.5.25"
     },
     "sharp": "$sharp"
   },

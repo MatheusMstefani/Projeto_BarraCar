@@ -1,13 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { stat } from "node:fs/promises";
+import { hasSupabaseTestCredentials, signInToBarracar } from "./supabase-auth";
 
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail ou usuário").fill("admin");
-  await page.getByLabel("Senha").fill("Barracar@123");
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/$/);
-}
+test.skip(!hasSupabaseTestCredentials, "Credenciais Supabase E2E não configuradas.");
 
 const compact = (value: string) => value.replace(/\s+/g, " ").trim();
 
@@ -30,7 +25,7 @@ test("consulta histórico, preserva filtros e exporta PDF/CSV", async ({ page })
 
   await page.goto("/historico");
   await expect(page).toHaveURL(/\/login/);
-  await login(page);
+  await signInToBarracar(page);
 
   await page.locator('button[aria-controls="sidebar-group-gestao"]').click();
   await page.locator('a[href="/historico"]').click();

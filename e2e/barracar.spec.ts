@@ -1,15 +1,11 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import {
+  hasSupabaseTestCredentials,
+  signInToBarracar as signIn,
+  supabaseTestEmail,
+} from "./supabase-auth";
 
-const admin = { login: "admin", password: "Barracar@123" };
-
-async function signIn(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail ou usuário").fill(admin.login);
-  await page.getByLabel("Senha").fill(admin.password);
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByText(/Olá,/)).toBeVisible();
-}
+test.skip(!hasSupabaseTestCredentials, "Credenciais Supabase E2E não configuradas.");
 
 test.describe.serial("Barracar Gestão", () => {
   test("protege rotas, rejeita credenciais inválidas e mantém a sessão", async ({ page }) => {
@@ -21,7 +17,7 @@ test.describe.serial("Barracar Gestão", () => {
     await expect(loginLogo).toBeVisible();
     await expect(loginLogo).toHaveAttribute(
       "src",
-      /^\/_next\/static\/media\/BarraCar-Logo\..+\.png$/,
+      "/branding/barracar-logo.png",
     );
     expect(
       await loginLogo.evaluate((image: HTMLImageElement) => ({
@@ -41,10 +37,10 @@ test.describe.serial("Barracar Gestão", () => {
     );
     expect([307, 401]).toContain(unauthenticatedOptions.status());
 
-    await page.getByLabel("E-mail ou usuário").fill(admin.login);
+    await page.getByLabel("E-mail", { exact: true }).fill(supabaseTestEmail);
     await page.getByLabel("Senha").fill("senha-incorreta");
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page.getByText("Usuário ou senha inválidos.")).toBeVisible();
+    await expect(page.getByText("E-mail ou senha inválidos.")).toBeVisible();
 
     await signIn(page);
     await page.reload();

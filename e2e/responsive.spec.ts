@@ -1,13 +1,14 @@
 import { expect, test } from "@playwright/test";
+import { hasSupabaseTestCredentials, signInToBarracar } from "./supabase-auth";
+
+test.skip(!hasSupabaseTestCredentials, "Credenciais Supabase E2E não configuradas.");
 
 test("login e navegação mobile não extrapolam a viewport", async ({ page }) => {
   await page.goto("/login");
   await expect(page.locator("body")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 
-  await page.getByLabel("E-mail ou usuário").fill("admin");
-  await page.getByLabel("Senha").fill("Barracar@123");
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await signInToBarracar(page);
   await expect(page.getByRole("button", { name: "Abrir menu" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Abrir menu" })).toHaveAttribute("aria-expanded", "false");
   await page.getByRole("button", { name: "Abrir menu" }).click();

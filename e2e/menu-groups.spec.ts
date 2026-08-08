@@ -1,19 +1,14 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { hasSupabaseTestCredentials, signInToBarracar } from "./supabase-auth";
 
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail ou usuário").fill("admin");
-  await page.getByLabel("Senha").fill("Barracar@123");
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/$/);
-}
+test.skip(!hasSupabaseTestCredentials, "Credenciais Supabase E2E não configuradas.");
 
 function groupButton(page: Page, key: string): Locator {
   return page.locator(`button[aria-controls="sidebar-group-${key}"]`);
 }
 
 test("grupos da sidebar abrem e fecham de forma independente", async ({ page }) => {
-  await login(page);
+  await signInToBarracar(page);
   await expect(page.locator("aside:visible")).toHaveCount(1);
   expect((await page.locator("aside:visible").boundingBox())?.x).toBe(0);
   await expect(page.getByRole("button", { name: "Sair" })).toHaveCount(1);

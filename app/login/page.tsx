@@ -1,11 +1,16 @@
 import Image from "next/image";
-import { loginAction } from "@/app/actions";
+import { LoginForm } from "@/components/login-form";
+import { getSupabaseIdentity } from "@/lib/supabase/identity";
+import { redirect } from "next/navigation";
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
-  const params = await searchParams;
+export const dynamic = "force-dynamic";
+
+export default async function Login() {
+  if (await getSupabaseIdentity()) redirect("/auth-test");
+
   return (
     <main className="login">
-      <form action={loginAction} className="card form">
+      <div className="card form">
         <div className="grid justify-items-center gap-3 text-center">
           <Image
             src="/branding/barracar-logo.png"
@@ -21,23 +26,8 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <p>Entre para acessar a operação.</p>
           </div>
         </div>
-        {params.erro && <p className="error">Usuário ou senha inválidos.</p>}
-        <label>
-          E-mail ou usuário
-          <input name="login" required autoComplete="username" />
-        </label>
-        <label>
-          Senha
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="current-password"
-          />
-        </label>
-        <button>Entrar</button>
-      </form>
+        <LoginForm />
+      </div>
     </main>
   );
 }
