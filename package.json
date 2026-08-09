@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:database:connections": "tsx scripts/test-postgres-connections.ts",
     "test:storage:local": "tsx scripts/storage-smoke.ts",
     "provision:storage": "tsx scripts/provision-supabase-storage.ts",
     "verify:deployment-env": "tsx scripts/validate-deployment-env.ts",
