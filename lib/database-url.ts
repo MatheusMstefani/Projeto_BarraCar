@@ -25,12 +25,19 @@ export function normalizedDatabaseEnvironment(
   for (const name of DATABASE_VARIABLES) {
     normalized[name] = normalizeDatabaseUrlValue(name, environment[name]);
   }
+  if (environment.VERCEL && normalized.DATABASE_URL) {
+    const runtimeUrl = new URL(normalized.DATABASE_URL);
+    runtimeUrl.searchParams.set("pgbouncer", "true");
+    runtimeUrl.searchParams.set("connection_limit", "1");
+    normalized.DATABASE_URL = runtimeUrl.toString();
+  }
   return normalized as NodeJS.ProcessEnv;
 }
 
 export function applyNormalizedDatabaseEnvironment() {
+  const normalized = normalizedDatabaseEnvironment(process.env);
   for (const name of DATABASE_VARIABLES) {
-    const value = normalizeDatabaseUrlValue(name, process.env[name]);
+    const value = normalized[name];
     if (value === undefined) delete process.env[name];
     else process.env[name] = value;
   }

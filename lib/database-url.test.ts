@@ -31,4 +31,14 @@ describe("normalização segura das URLs PostgreSQL", () => {
       SUPABASE_SECRET_KEY: "preservada",
     });
   });
+
+  it("limita a conexão do pooler transacional somente na Vercel", () => {
+    const environment = normalizedDatabaseEnvironment({
+      VERCEL: "1",
+      DATABASE_URL: "postgresql://user:password@pooler.example.com:6543/database",
+    });
+    const url = new URL(environment.DATABASE_URL!);
+    expect(url.searchParams.get("pgbouncer")).toBe("true");
+    expect(url.searchParams.get("connection_limit")).toBe("1");
+  });
 });
