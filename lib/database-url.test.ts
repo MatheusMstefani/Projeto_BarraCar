@@ -35,10 +35,21 @@ describe("normalização segura das URLs PostgreSQL", () => {
   it("limita a conexão do pooler transacional somente na Vercel", () => {
     const environment = normalizedDatabaseEnvironment({
       VERCEL: "1",
+      NEXT_PUBLIC_SUPABASE_URL: "https://projectref.supabase.co",
       DATABASE_URL: "postgresql://user:password@pooler.example.com:6543/database",
     });
     const url = new URL(environment.DATABASE_URL!);
     expect(url.searchParams.get("pgbouncer")).toBe("true");
     expect(url.searchParams.get("connection_limit")).toBe("1");
+  });
+
+  it("completa o usuário exigido pelo pooler do Supabase", () => {
+    const environment = normalizedDatabaseEnvironment({
+      VERCEL: "1",
+      NEXT_PUBLIC_SUPABASE_URL: "https://projectref.supabase.co",
+      DIRECT_URL:
+        "postgresql://postgres:password@aws-1-region.pooler.supabase.com:5432/postgres",
+    });
+    expect(new URL(environment.DIRECT_URL!).username).toBe("postgres.projectref");
   });
 });

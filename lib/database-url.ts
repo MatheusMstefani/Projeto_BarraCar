@@ -25,11 +25,26 @@ export function normalizedDatabaseEnvironment(
   for (const name of DATABASE_VARIABLES) {
     normalized[name] = normalizeDatabaseUrlValue(name, environment[name]);
   }
-  if (environment.VERCEL && normalized.DATABASE_URL) {
-    const runtimeUrl = new URL(normalized.DATABASE_URL);
-    runtimeUrl.searchParams.set("pgbouncer", "true");
-    runtimeUrl.searchParams.set("connection_limit", "1");
-    normalized.DATABASE_URL = runtimeUrl.toString();
+  if (environment.VERCEL) {
+    const projectRef = environment.NEXT_PUBLIC_SUPABASE_URL?.match(
+      /^https:\/\/([^.]+)\.supabase\.co\/?$/i,
+    )?.[1];
+    for (const name of DATABASE_VARIABLES) {
+      if (!normalized[name]) continue;
+      const url = new URL(normalized[name]);
+      if (
+        projectRef &&
+        url.hostname.endsWith(".pooler.supabase.com") &&
+        decodeURIComponent(url.username) === "postgres"
+      ) {
+        url.username = `postgres.${projectRef}`;
+      }
+      if (name === "DATABASE_URL") {
+        url.searchParams.set("pgbouncer", "true");
+        url.searchParams.set("connection_limit", "1");
+      }
+      normalized[name] = url.toString();
+    }
   }
   return normalized as NodeJS.ProcessEnv;
 }
