@@ -17,12 +17,6 @@ function required(name: string) {
   return value;
 }
 
-function errorStatus(error: unknown) {
-  if (!error || typeof error !== "object") return null;
-  const candidate = error as { status?: number; statusCode?: string | number };
-  return Number(candidate.status ?? candidate.statusCode) || null;
-}
-
 function sameBytes(left: Uint8Array, right: Uint8Array) {
   const digest = (value: Uint8Array) =>
     createHash("sha256").update(value).digest("hex");
@@ -37,11 +31,14 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const current = await supabase.storage.getBucket(bucketName);
+  const current = await supabase.storage.listBuckets({ search: bucketName });
   if (current.error) {
-    if (errorStatus(current.error) !== 404) {
-      throw new Error("Não foi possível consultar o bucket privado do Supabase.");
-    }
+    throw new Error("Não foi possível consultar os buckets do Supabase.");
+  }
+  const bucketExists = current.data.some(
+    (bucket) => bucket.id === bucketName || bucket.name === bucketName,
+  );
+  if (!bucketExists) {
     const created = await supabase.storage.createBucket(bucketName, {
       public: false,
       fileSizeLimit: MAX_FILE_SIZE,
