@@ -28,7 +28,7 @@ export function LoginForm() {
         setError("E-mail ou senha inválidos.");
         return;
       }
-      router.replace("/auth-test");
+      router.replace("/");
       router.refresh();
     } catch {
       setError("Não foi possível entrar. Tente novamente.");

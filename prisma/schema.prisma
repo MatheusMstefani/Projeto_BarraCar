@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -434,6 +435,8 @@ model WorkOrderItem {
   photos      InspectionPhoto[]
 
   @@index([workOrderId])
+  @@index([serviceId])
+  @@index([employeeId])
 }
 
 model Appointment {
@@ -455,6 +458,9 @@ model Appointment {
   updatedAt   DateTime          @updatedAt
 
   @@index([startsAt, status])
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([employeeId])
 }
 
 model FinancialEntry {
@@ -500,4 +506,5 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([entity, entityId])
+  @@index([userId])
 }

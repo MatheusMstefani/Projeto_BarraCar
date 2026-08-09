@@ -53,8 +53,8 @@ describe("proteção de rotas", () => {
     expect(getAuthRedirectPath("/auth-test", true)).toBeNull();
   });
 
-  it("não mostra login novamente para sessão válida", () => {
-    expect(getAuthRedirectPath("/login", true)).toBe("/auth-test");
+  it("deixa a página de login validar o vínculo com o usuário interno", () => {
+    expect(getAuthRedirectPath("/login", true)).toBeNull();
     expect(getAuthRedirectPath("/login", false)).toBeNull();
   });
 });

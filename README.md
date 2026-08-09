@@ -28,11 +28,14 @@ Não há cadastro público e nenhuma credencial de produção é versionada.
 
 ## Ambiente e banco
 
-Copie `.env.example`. `DATABASE_URL` conecta o Prisma;
+Copie `.env.example`. `DATABASE_URL` conecta o Prisma em runtime e `DIRECT_URL`
+é usada pelas migrations;
 `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` configuram somente
-o Supabase Auth; `S3_*` prepara o armazenamento privado; `APP_TIMEZONE` começa em
-`America/Sao_Paulo`. O seed idempotente cria o perfil de negócio do administrador,
-configurações e os 42 serviços iniciais.
+o Supabase Auth. `STORAGE_PROVIDER=minio` usa as variáveis `S3_*` no ambiente local;
+`STORAGE_PROVIDER=supabase` usa `SUPABASE_SECRET_KEY` exclusivamente no servidor e o
+bucket privado indicado por `SUPABASE_STORAGE_BUCKET`. `APP_TIMEZONE` começa em
+`America/Sao_Paulo`. O seed idempotente cria o perfil de negócio do administrador
+configurado por `SEED_ADMIN_EMAIL`, as configurações e os 42 serviços iniciais.
 
 ```bash
 npx prisma studio
@@ -91,7 +94,11 @@ Para testar:
 6. Em Documento PDF, gere, visualize, baixe e gere uma nova versão.
 7. Em Histórico, confirme os eventos auditados.
 
-O MinIO está em `http://localhost:9001` com as credenciais locais do `.env.example`. O bucket `barracar-private` deve aparecer sem acesso anônimo. Para testar pelo celular, use o IP local do computador e permita acesso à câmera no navegador.
+O MinIO está em `http://localhost:9001` com as credenciais locais do `.env.example`.
+O bucket `barracar-private` deve aparecer sem acesso anônimo. Na Vercel, a mesma porta
+de armazenamento usa Supabase Storage e mantém os downloads atrás das rotas
+autenticadas do Barracar. Para testar pelo celular, use o IP local do computador e
+permita acesso à câmera no navegador.
 
 ```bash
 npx prisma migrate deploy
@@ -120,6 +127,6 @@ No teste manual, abra uma OS e a aba **Vistoria e fotos**. Envie categorias dife
 - O upload aceita o lote anunciado, valida enums no servidor, limpa o formulário ao concluir e remove objetos novos quando a persistência falha.
 - A geração de PDF é serializada por OS para garantir versões únicas em requisições concorrentes.
 - A identidade é validada pelo Supabase Auth; a autorização dos módulos continua revalidada contra o usuário local ativo e sua função atual.
-- Em produção, as credenciais `S3_ACCESS_KEY` e `S3_SECRET_KEY` continuam obrigatórias para as funcionalidades de mídia.
+- Em produção, `STORAGE_PROVIDER=supabase` exige `SUPABASE_SECRET_KEY` somente no ambiente server-side; o MinIO e suas credenciais continuam restritos ao desenvolvimento local.
 
 Como o sistema interno não possui escopo por equipe/filial, usuários ativos autenticados compartilham acesso às mídias das OS; os objetos continuam privados e são entregues somente por rotas autenticadas.

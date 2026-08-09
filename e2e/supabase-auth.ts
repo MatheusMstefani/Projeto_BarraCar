@@ -11,6 +11,8 @@ export async function signInToSupabase(page: Page) {
   await page.getByLabel("E-mail", { exact: true }).fill(supabaseTestEmail);
   await page.getByLabel("Senha", { exact: true }).fill(supabaseTestPassword);
   await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForLoadState("networkidle");
+  await page.goto("/auth-test");
   await expect(page).toHaveURL(/\/auth-test$/);
 }
 

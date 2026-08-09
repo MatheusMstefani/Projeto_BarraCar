@@ -1,12 +1,12 @@
 import Image from "next/image";
 import { LoginForm } from "@/components/login-form";
-import { getSupabaseIdentity } from "@/lib/supabase/identity";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function Login() {
-  if (await getSupabaseIdentity()) redirect("/auth-test");
+  if (await auth()) redirect("/");
 
   return (
     <main className="login">

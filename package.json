@@ -7,10 +7,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "npm run verify:deployment-env && prisma generate && prisma migrate deploy && prisma db seed && npm run provision:storage && next build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:storage:local": "tsx scripts/storage-smoke.ts",
+    "provision:storage": "tsx scripts/provision-supabase-storage.ts",
+    "verify:deployment-env": "tsx scripts/validate-deployment-env.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed"
   },
@@ -22,7 +26,6 @@
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.112.2",
     "@tailwindcss/postcss": "^4.3.3",
-    "bcryptjs": "^2.4.3",
     "file-type": "^22.0.1",
     "material-symbols": "^0.45.10",
     "next": "^15.5.22",
@@ -36,7 +39,6 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@playwright/test": "^1.62.1",
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",

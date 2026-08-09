@@ -1,100 +1,66 @@
+import type { PrivateStorage } from "./storage/types";
+import { createMinioStorage, resolveMinioStorageConfig } from "./storage/minio";
 import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadBucketCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+  createSupabaseStorage,
+  resolveSupabaseStorageConfig,
+} from "./storage/supabase";
+
+export type { PrivateStorage } from "./storage/types";
+export { resolveMinioStorageConfig, resolveSupabaseStorageConfig };
+
+type StorageProvider = "minio" | "supabase";
 
 interface StorageEnvironment {
   NODE_ENV?: string;
+  STORAGE_PROVIDER?: string;
   S3_ENDPOINT?: string;
   S3_REGION?: string;
   S3_BUCKET?: string;
   S3_ACCESS_KEY?: string;
   S3_SECRET_KEY?: string;
+  NEXT_PUBLIC_SUPABASE_URL?: string;
+  SUPABASE_SECRET_KEY?: string;
+  SUPABASE_STORAGE_BUCKET?: string;
 }
 
-export interface StorageConfig {
-  endpoint: string;
-  region: string;
-  bucket: string;
-  accessKeyId: string;
-  secretAccessKey: string;
+export function resolveStorageProvider(
+  environment: StorageEnvironment = process.env,
+): StorageProvider {
+  const configured = environment.STORAGE_PROVIDER?.trim().toLowerCase();
+  if (!configured) return "minio";
+  if (configured === "minio" || configured === "supabase") return configured;
+  throw new Error("STORAGE_PROVIDER deve ser 'minio' ou 'supabase'.");
 }
 
-function credential(
-  environment: StorageEnvironment,
-  name: "S3_ACCESS_KEY" | "S3_SECRET_KEY",
-  developmentFallback: string,
-) {
-  const value = environment[name]?.trim();
-  if (value) return value;
-  if (environment.NODE_ENV === "production") {
-    throw new Error(`${name} deve ser configurada explicitamente em produção.`);
+export function createPrivateStorage(
+  environment: StorageEnvironment = process.env,
+): PrivateStorage {
+  const provider = resolveStorageProvider(environment);
+  if (provider === "supabase") {
+    return createSupabaseStorage(resolveSupabaseStorageConfig(environment));
   }
-  return developmentFallback;
+  return createMinioStorage(resolveMinioStorageConfig(environment));
 }
 
-export function resolveStorageConfig(environment: StorageEnvironment = process.env): StorageConfig {
-  return {
-    endpoint: environment.S3_ENDPOINT?.trim() || "http://localhost:9000",
-    region: environment.S3_REGION?.trim() || "us-east-1",
-    bucket: environment.S3_BUCKET?.trim() || "barracar-private",
-    accessKeyId: credential(environment, "S3_ACCESS_KEY", "barracar"),
-    secretAccessKey: credential(environment, "S3_SECRET_KEY", "troque-esta-chave-local"),
-  };
+let cachedStorage: PrivateStorage | null = null;
+function selectedStorage() {
+  if (!cachedStorage) cachedStorage = createPrivateStorage();
+  return cachedStorage;
 }
 
-// Inicialização preguiçosa: o `next build` importa os módulos com
-// NODE_ENV=production e sem as variáveis S3_*; a validação rígida continua
-// valendo em produção, mas só na primeira operação de storage.
-let cached: { client: S3Client; bucket: string } | null = null;
-function storage() {
-  if (!cached) {
-    const config = resolveStorageConfig();
-    cached = {
-      bucket: config.bucket,
-      client: new S3Client({
-        endpoint: config.endpoint,
-        region: config.region,
-        forcePathStyle: true,
-        credentials: {
-          accessKeyId: config.accessKeyId,
-          secretAccessKey: config.secretAccessKey,
-        },
-      }),
-    };
-  }
-  return cached;
-}
-
-export interface PrivateStorage {
-  put(key: string, body: Uint8Array, contentType: string): Promise<void>;
-  get(key: string): Promise<Uint8Array>;
-  delete?(key: string): Promise<void>;
-  healthCheck?(): Promise<void>;
-}
-
+// O proxy mantém a configuração preguiçosa: o build pode importar os módulos
+// sem exigir credenciais, mas a primeira operação valida o provider selecionado.
 export const privateStorage: PrivateStorage = {
-  async put(key, body, contentType) {
-    const { client, bucket } = storage();
-    await client.send(
-      new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }),
-    );
+  put(key, body, contentType) {
+    return selectedStorage().put(key, body, contentType);
   },
-  async get(key) {
-    const { client, bucket } = storage();
-    const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-    if (!result.Body) throw new Error("Arquivo não encontrado.");
-    return result.Body.transformToByteArray();
+  get(key) {
+    return selectedStorage().get(key);
   },
-  async delete(key) {
-    const { client, bucket } = storage();
-    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+  delete(key) {
+    return selectedStorage().delete?.(key) ?? Promise.resolve();
   },
-  async healthCheck() {
-    const { client, bucket } = storage();
-    await client.send(new HeadBucketCommand({ Bucket: bucket }));
+  healthCheck() {
+    return selectedStorage().healthCheck?.() ?? Promise.resolve();
   },
 };
