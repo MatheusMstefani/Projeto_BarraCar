@@ -340,6 +340,7 @@ model WorkOrderChecklistItem {
 
   @@unique([workOrderId, templateItemId])
   @@index([workOrderId, status])
+  @@index([templateItemId])
   @@index([completedById])
 }
 
