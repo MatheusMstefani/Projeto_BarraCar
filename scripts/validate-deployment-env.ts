@@ -21,6 +21,21 @@ function postgresUrl(name: "DATABASE_URL" | "DIRECT_URL", expectedPort: string) 
     }
     if (url.port !== expectedPort) failures.push(`${name}: porta inválida`);
     if (!value.includes(projectRef)) failures.push(`${name}: projeto incorreto`);
+    if (
+      url.hostname.endsWith(".pooler.supabase.com") &&
+      decodeURIComponent(url.username) !== `postgres.${projectRef}`
+    ) {
+      failures.push(`${name}: usuário do pooler incorreto`);
+    }
+    try {
+      const password = decodeURIComponent(url.password);
+      if (!password) failures.push(`${name}: senha ausente`);
+      if (/^\[(?:your[-_ ]?)?password\]$/i.test(password)) {
+        failures.push(`${name}: substitua o marcador pela senha real do banco`);
+      }
+    } catch {
+      failures.push(`${name}: codificação inválida na senha`);
+    }
     return url;
   } catch {
     const hints: string[] = [];
@@ -41,7 +56,7 @@ function postgresUrl(name: "DATABASE_URL" | "DIRECT_URL", expectedPort: string) 
 }
 
 const databaseUrl = postgresUrl("DATABASE_URL", "6543");
-postgresUrl("DIRECT_URL", "5432");
+const directUrl = postgresUrl("DIRECT_URL", "5432");
 if (databaseUrl) {
   if (databaseUrl.searchParams.get("pgbouncer") !== "true") {
     failures.push("DATABASE_URL: pgbouncer=true ausente");
@@ -49,6 +64,9 @@ if (databaseUrl) {
   if (databaseUrl.searchParams.get("connection_limit") !== "1") {
     failures.push("DATABASE_URL: connection_limit=1 ausente");
   }
+}
+if (databaseUrl && directUrl && databaseUrl.password !== directUrl.password) {
+  failures.push("DATABASE_URL e DIRECT_URL: as senhas configuradas são diferentes");
 }
 
 if (configured("NEXT_PUBLIC_SUPABASE_URL") !== expectedSupabaseUrl) {
