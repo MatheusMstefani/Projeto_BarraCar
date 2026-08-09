@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "npm run verify:deployment-env && prisma generate && prisma migrate deploy && prisma db seed && npm run provision:storage && next build",
+    "vercel-build": "tsx scripts/vercel-build.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
