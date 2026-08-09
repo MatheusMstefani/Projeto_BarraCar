@@ -23,7 +23,19 @@ function postgresUrl(name: "DATABASE_URL" | "DIRECT_URL", expectedPort: string) 
     if (!value.includes(projectRef)) failures.push(`${name}: projeto incorreto`);
     return url;
   } catch {
-    failures.push(`${name}: formato inválido`);
+    const hints: string[] = [];
+    if (/^(?:DATABASE_URL|DIRECT_URL)\s*=/i.test(value)) {
+      hints.push("remova o nome da variável e mantenha somente o valor");
+    }
+    if (/^["']|["']$/.test(value)) {
+      hints.push("remova as aspas externas");
+    }
+    if (!/^postgres(?:ql)?:\/\//i.test(value)) {
+      hints.push("o valor deve começar com postgresql://");
+    }
+    failures.push(
+      `${name}: formato inválido${hints.length ? ` (${hints.join("; ")})` : " (verifique caracteres especiais não codificados na senha)"}`,
+    );
     return null;
   }
 }
